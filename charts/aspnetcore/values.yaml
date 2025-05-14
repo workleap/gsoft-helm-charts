@@ -147,6 +147,11 @@ nodeSelector: {}
 ##
 tolerations: []
 
+## @param topologySpreadConstraints for pods
+## ref: https://kubernetes.io/docs/concepts/scheduling-eviction/topology-spread-constraints/
+## notes: Setting the topologySpreadConstraints will override the helm chart's `spreadAcrossNodes` preset
+topologySpreadConstraints: []
+
 ## Kubernetes service account
 ## @param serviceAccount.create Specifies whether a ServiceAccount should be created
 ## @param serviceAccount.name The name of the ServiceAccount to use, even if "create" is false
@@ -240,3 +245,10 @@ migration:
   existingSelectors:
     enabled: false
     selectors: {}
+
+## Handles more complex configurations in an opiniated way
+presets:
+  ## Configure a `topologySpreadConstraints` for the deployment spreading pods across nodes in a best effort way
+  ## Setting the chart Values.topologySpreadConstraints will override this preset
+  spreadAcrossNodes:
+    enabled: true

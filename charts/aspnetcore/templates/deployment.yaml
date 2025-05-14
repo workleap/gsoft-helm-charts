@@ -46,7 +46,23 @@ spec:
       securityContext:
         sysctls:
           {{- toYaml .Values.securityContext.sysctls | nindent 10 }}
-      {{- end }}   
+      {{- end }}
+      {{- if .Values.topologySpreadConstraints }}
+      topologySpreadConstraints:
+        {{- toYaml .Values.topologySpreadConstraints | nindent 8 }}
+      {{- else if .Values.presets.spreadAcrossNodes.enabled }}
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: kubernetes.io/hostname
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchLabels:
+              {{- if .Values.migration.existingSelectors.enabled }}
+                {{- toYaml .Values.migration.existingSelectors.selectors | nindent 14 }}
+              {{- else }}
+                {{ include "aspnetcore.selectorLabels" . | nindent 14 }}
+              {{- end }}
+      {{- end }}
       serviceAccountName: {{ include "aspnetcore.serviceAccountName" . }}
       terminationGracePeriodSeconds: {{ .Values.terminationGracePeriodSeconds }}
       containers:
