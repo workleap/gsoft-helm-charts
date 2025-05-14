@@ -20,3 +20,8 @@ app.kubernetes.io/managed-by: {{ .Release.Service }}
   {{- default "default" .Values.serviceAccount.name }}
 {{- end }}
 {{- end }}
+
+{{/* Standard Workleap annotations */}}
+{{- define "workleap.standardAnnotations" -}}
+workleap.com/git: {{ .Values.gitRepoUrl }}
+{{- end }}
