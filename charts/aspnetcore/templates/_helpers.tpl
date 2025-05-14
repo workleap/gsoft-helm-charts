@@ -23,5 +23,5 @@ app.kubernetes.io/managed-by: {{ .Release.Service }}
 
 {{/* Standard Workleap annotations */}}
 {{- define "workleap.standardAnnotations" -}}
-workleap.com/git: {{ .Values.gitRepoUrl }}
+workleap.com/git: {{ .Values.git.url }}
 {{- end }}

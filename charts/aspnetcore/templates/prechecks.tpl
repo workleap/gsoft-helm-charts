@@ -8,6 +8,6 @@
     {{- end }}
 {{- end }}
 
-{{- if not .Values.gitRepoUrl }}
-    {{- fail "gitRepoUrl is required" }}
+{{- if not .Values.git.url }}
+    {{- fail "git.url is required" }}
 {{- end }}
