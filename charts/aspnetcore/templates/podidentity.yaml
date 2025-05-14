@@ -9,8 +9,9 @@ metadata:
       {{- toYaml . | nindent 4 }}
     {{- end }}
   annotations:
-    {{- with .Values.commonAnnotations }}
-      {{- toYaml . | nindent 4 }}
+    {{- include "workleap.standardAnnotations" . | nindent 4 }}
+    {{- if .Values.commonAnnotations }}
+      {{- toYaml .Values.commonAnnotations | nindent 4 }}
     {{- end }}
 spec:
   azureIdentity: {{ .Values.aadPodIdentityBinding.identityName }}
