@@ -162,7 +162,7 @@ serviceAccount:
   name: ""
   annotations: {}
 
-## Azure AD Pod Identity binding (https://github.com/Azure/aad-pod-identity)
+## Azure AD Pod Identity binding (https://github.com/Azure/aad-pod-identity) - Deprecated since October 24, 2022; use azureWorkloadIdentity instead
 ## @param aadPodIdentityBinding.create Whether or not to create an AAD pod identity binding associated to the deployment
 ## @param aadPodIdentityBinding.name Name of the AAD pod identity binding, automatically generated from the release name if not specified
 ## @param aadPodIdentityBinding.identityName Name of the AAD identity

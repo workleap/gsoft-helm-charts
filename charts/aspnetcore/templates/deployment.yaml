@@ -63,6 +63,12 @@ spec:
                 {{ include "aspnetcore.selectorLabels" . | nindent 14 }}
               {{- end }}
       {{- end }}
+      {{- if .Values.aadPodIdentityBinding.create }}
+      # Kubernetes API access required when using the deprecated aadPodIdentityBinding
+      automountServiceAccountToken: true
+      {{- else }}
+      automountServiceAccountToken: false
+      {{- end }}
       serviceAccountName: {{ include "aspnetcore.serviceAccountName" . }}
       terminationGracePeriodSeconds: {{ .Values.terminationGracePeriodSeconds }}
       containers:
