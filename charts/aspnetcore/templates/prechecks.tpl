@@ -7,3 +7,7 @@
         {{- end }}
     {{- end }}
 {{- end }}
+
+{{- if not .Values.git.url }}
+    {{- fail "git.url is required" }}
+{{- end }}

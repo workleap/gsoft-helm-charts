@@ -10,6 +10,11 @@ terminationGracePeriodSeconds: 30
 ##
 environment: Development
 
+## Git parameters
+## @param git.url The URL of your git repository; Required.
+git:
+  url: ""
+
 ## @param commonLabels Labels to add to all deployed objects
 ##
 commonLabels: {}
