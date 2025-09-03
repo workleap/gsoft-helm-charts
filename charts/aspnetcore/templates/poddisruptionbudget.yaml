@@ -1,3 +1,14 @@
+{{- $minAvailable := .Values.podDisruptionBudget.minAvailable }}
+{{- $minAvailableStr := ($minAvailable | toString) }}
+{{- $replicaCount := .Values.replicaCount }}
+
+{{/* Don't create PDB when replicaCount is 1 to avoid node drain deadlocks */}}
+{{/* For percentages, any % > 0 with 1 replica rounds up to 1 (deadlock) */}}
+{{/* For integers, any value >= replica count causes deadlock */}}
+{{- $isPercentage := hasSuffix "%" $minAvailableStr }}
+{{- $shouldCreatePDB := and (gt $replicaCount 1) (or $isPercentage (lt $minAvailable $replicaCount)) }}
+
+{{- if $shouldCreatePDB }}
 apiVersion: policy/v1
 kind: PodDisruptionBudget
 metadata:
@@ -11,3 +22,4 @@ spec:
       {{- else }}
         {{ include "aspnetcore.selectorLabels" . | nindent 6 }}
       {{- end }}
+{{- end }}
