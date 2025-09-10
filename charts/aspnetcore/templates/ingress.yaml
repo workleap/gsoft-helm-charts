@@ -9,9 +9,7 @@ metadata:
       {{- toYaml .Values.commonLabels | nindent 4 }}
     {{- end }}
   annotations:
-    {{- if .Values.ingress.proxyReadTimeout }}
     nginx.ingress.kubernetes.io/proxy-read-timeout: {{ .Values.ingress.proxyReadTimeout | quote }}
-    {{- end }}
     {{- with .Values.ingress.annotations }}
       {{- toYaml . | nindent 4 }}
     {{- end }}
