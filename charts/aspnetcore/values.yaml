@@ -63,7 +63,7 @@ ingress:
   additionalPaths: []
   pathType: Prefix
   annotations: {}
-  proxyReadTimeout: "60s"
+  proxyReadTimeout: "60"
   tls:
     enabled: false
     secretName: ""
