@@ -1,0 +1,58 @@
+suite: service tests
+templates:
+  - service.yaml
+tests:
+  - it: should render successfully
+    asserts:
+      - hasDocuments:
+          count: 1
+      - isKind:
+          of: Service
+      - equal:
+          path: spec.ports[0].port
+          value: 80
+
+  - it: should use migration existing selectors when enabled
+    set:
+      migration:
+        existingSelectors:
+          enabled: true
+          selectors:
+            old-app: "legacy"
+            version: "v1"
+    asserts:
+      - hasDocuments:
+          count: 1
+      - equal:
+          path: spec.selector
+          value:
+            old-app: "legacy"
+            version: "v1"
+
+  - it: should apply commonLabels and commonAnnotations
+    set:
+      commonLabels:
+        environment: "production"
+      commonAnnotations:
+        owner: "team-a"
+    asserts:
+      - hasDocuments:
+          count: 1
+      - equal:
+          path: metadata.labels.environment
+          value: "production"
+      - equal:
+          path: metadata.annotations.owner
+          value: "team-a"
+
+  - it: should apply service specific annotations
+    set:
+      service:
+        annotations:
+          service.beta.kubernetes.io/aws-load-balancer-type: "nlb"
+    asserts:
+      - hasDocuments:
+          count: 1
+      - equal:
+          path: metadata.annotations["service.beta.kubernetes.io/aws-load-balancer-type"]
+          value: "nlb"

@@ -1,0 +1,246 @@
+suite: helpers cross-template integration tests
+templates:
+  - deployment.yaml
+  - service.yaml
+  - serviceaccount.yaml
+  - ingress.yaml
+  - poddisruptionbudget.yaml
+tests:
+  # =============================================================================
+  # Service Template Helper Integration Tests
+  # =============================================================================
+  - it: should apply standardLabels consistently in service
+    asserts:
+      - hasDocuments:
+          count: 1
+        template: service.yaml
+      - equal:
+          path: metadata.labels["helm.sh/chart"]
+          value: "aspnetcore-3.2.1"
+        template: service.yaml
+      - equal:
+          path: metadata.labels["app.kubernetes.io/name"]
+          value: "aspnetcore"
+        template: service.yaml
+      - equal:
+          path: metadata.labels["app.kubernetes.io/instance"]
+          value: "RELEASE-NAME"
+        template: service.yaml
+
+  - it: should apply selectorLabels consistently in service
+    asserts:
+      - equal:
+          path: spec.selector["app.kubernetes.io/name"]
+          value: "aspnetcore"
+        template: service.yaml
+      - equal:
+          path: spec.selector["app.kubernetes.io/instance"]
+          value: "RELEASE-NAME"
+        template: service.yaml
+
+  # =============================================================================
+  # ServiceAccount Template Helper Integration Tests
+  # =============================================================================
+  - it: should use correct serviceAccountName in ServiceAccount resource
+    set:
+      serviceAccount:
+        create: true
+    asserts:
+      - hasDocuments:
+          count: 1
+        template: serviceaccount.yaml
+      - equal:
+          path: metadata.name
+          value: "RELEASE-NAME-serviceaccount"
+        template: serviceaccount.yaml
+
+  - it: should use custom serviceAccountName in ServiceAccount resource
+    set:
+      serviceAccount:
+        create: true
+        name: "my-custom-sa"
+    asserts:
+      - hasDocuments:
+          count: 1
+        template: serviceaccount.yaml
+      - equal:
+          path: metadata.name
+          value: "my-custom-sa"
+        template: serviceaccount.yaml
+
+  - it: should apply standardLabels consistently in serviceaccount
+    set:
+      serviceAccount:
+        create: true
+    asserts:
+      - equal:
+          path: metadata.labels["helm.sh/chart"]
+          value: "aspnetcore-3.2.1"
+        template: serviceaccount.yaml
+      - equal:
+          path: metadata.labels["app.kubernetes.io/name"]
+          value: "aspnetcore"
+        template: serviceaccount.yaml
+
+  # =============================================================================
+  # Ingress Template Helper Integration Tests
+  # =============================================================================
+  - it: should apply standardLabels consistently in ingress
+    set:
+      ingress:
+        create: true
+        hostname: "test.example.com"
+    asserts:
+      - hasDocuments:
+          count: 1
+        template: ingress.yaml
+      - equal:
+          path: metadata.labels["helm.sh/chart"]
+          value: "aspnetcore-3.2.1"
+        template: ingress.yaml
+      - equal:
+          path: metadata.labels["app.kubernetes.io/name"]
+          value: "aspnetcore"
+        template: ingress.yaml
+
+  # =============================================================================
+  # PodDisruptionBudget Template Helper Integration Tests
+  # =============================================================================
+  - it: should apply selectorLabels consistently in poddisruptionbudget
+    set:
+      replicaCount: 3
+      podDisruptionBudget:
+        minAvailable: 1
+    asserts:
+      - hasDocuments:
+          count: 1
+        template: poddisruptionbudget.yaml
+      - equal:
+          path: spec.selector.matchLabels["app.kubernetes.io/name"]
+          value: "aspnetcore"
+        template: poddisruptionbudget.yaml
+      - equal:
+          path: spec.selector.matchLabels["app.kubernetes.io/instance"]
+          value: "RELEASE-NAME"
+        template: poddisruptionbudget.yaml
+
+  # =============================================================================
+  # Cross-Template Consistency Tests
+  # =============================================================================
+  - it: should maintain label consistency across all templates
+    set:
+      replicaCount: 2
+      serviceAccount:
+        create: true
+      ingress:
+        create: true
+        hostname: "test.example.com"
+      podDisruptionBudget:
+        minAvailable: 1
+    release:
+      name: "test-app"
+    asserts:
+      # All templates should have consistent standard labels
+      - equal:
+          path: metadata.labels["app.kubernetes.io/name"]
+          value: "aspnetcore"
+        template: deployment.yaml
+      - equal:
+          path: metadata.labels["app.kubernetes.io/name"]
+          value: "aspnetcore"
+        template: service.yaml
+      - equal:
+          path: metadata.labels["app.kubernetes.io/name"]
+          value: "aspnetcore"
+        template: serviceaccount.yaml
+      - equal:
+          path: metadata.labels["app.kubernetes.io/name"]
+          value: "aspnetcore"
+        template: ingress.yaml
+
+      - equal:
+          path: metadata.labels["app.kubernetes.io/instance"]
+          value: "test-app"
+        template: deployment.yaml
+      - equal:
+          path: metadata.labels["app.kubernetes.io/instance"]
+          value: "test-app"
+        template: service.yaml
+      - equal:
+          path: metadata.labels["app.kubernetes.io/instance"]
+          value: "test-app"
+        template: serviceaccount.yaml
+      - equal:
+          path: metadata.labels["app.kubernetes.io/instance"]
+          value: "test-app"
+        template: ingress.yaml
+
+  - it: should handle migration selectors consistently across deployment and service
+    set:
+      migration:
+        existingSelectors:
+          enabled: true
+          selectors:
+            app: "legacy-app"
+            component: "api"
+    asserts:
+      # Deployment should use migration selectors
+      - equal:
+          path: spec.selector.matchLabels.app
+          value: "legacy-app"
+        template: deployment.yaml
+      - equal:
+          path: spec.selector.matchLabels.component
+          value: "api"
+        template: deployment.yaml
+
+      # Service should use same migration selectors
+      - equal:
+          path: spec.selector.app
+          value: "legacy-app"
+        template: service.yaml
+      - equal:
+          path: spec.selector.component
+          value: "api"
+        template: service.yaml
+
+      # But metadata labels should still use standard labels
+      - equal:
+          path: metadata.labels["app.kubernetes.io/name"]
+          value: "aspnetcore"
+        template: deployment.yaml
+      - equal:
+          path: metadata.labels["app.kubernetes.io/name"]
+          value: "aspnetcore"
+        template: service.yaml
+
+  # =============================================================================
+  # Edge Case Tests for Helpers
+  # =============================================================================
+  - it: should handle special characters in chart version for helm.sh/chart label
+    chart:
+      version: "1.0.0+build.123-rc1"
+    asserts:
+      - equal:
+          path: metadata.labels["helm.sh/chart"]
+          value: "aspnetcore-1.0.0_build.123-rc1"
+        template: service.yaml
+
+  - it: should handle long release names gracefully
+    release:
+      name: "long-release-name-test"
+    asserts:
+      - equal:
+          path: metadata.labels["app.kubernetes.io/instance"]
+          value: "long-release-name-test"
+        template: service.yaml
+
+  - it: should quote app.kubernetes.io/version label correctly
+    set:
+      image:
+        tag: "1.0.0-beta+build.123"
+    asserts:
+      - equal:
+          path: metadata.labels["app.kubernetes.io/version"]
+          value: "1.0.0-beta+build.123"
+        template: service.yaml

@@ -1,0 +1,159 @@
+suite: comprehensive end-to-end tests
+templates:
+  - deployment.yaml
+  - poddisruptionbudget.yaml
+  - service.yaml
+  - ingress.yaml
+  - deployment-hpa.yaml
+  - serviceaccount.yaml
+  - podidentity.yaml
+tests:
+  # =============================================================================
+  # End-to-End Configuration Tests
+  # =============================================================================
+  - it: should deploy a complete application stack with all features enabled
+    set:
+      replicaCount: 3
+      environment: "Production"
+      commonLabels:
+        environment: "production"
+        app: "complete-app"
+      commonAnnotations:
+        version: "1.0.0"
+        team: "platform"
+      image:
+        tag: "v1.0.0"
+      ingress:
+        create: true
+        hostname: "myapp.example.com"
+        className: "nginx"
+        tls:
+          enabled: true
+          secretName: "myapp-tls"
+        additionalPaths:
+          - "/api"
+          - "/health"
+      serviceAccount:
+        create: true
+      azureWorkloadIdentity:
+        enabled: true
+        clientId: "12345678-1234-1234-1234-123456789012"
+      autoscaling:
+        enabled: true
+        minReplicas: 2
+        maxReplicas: 10
+        targetCPUUtilizationPercentage: 70
+      podDisruptionBudget:
+        minAvailable: 1
+      extraEnvVars:
+        - name: "APP_ENV"
+          value: "production"
+      podLabels:
+        tier: "web"
+        component: "api"
+    asserts:
+      # All resources should be created
+      - hasDocuments:
+          count: 1
+        template: deployment.yaml
+      - hasDocuments:
+          count: 1
+        template: service.yaml
+      - hasDocuments:
+          count: 1
+        template: ingress.yaml
+      - hasDocuments:
+          count: 1
+        template: poddisruptionbudget.yaml
+      - hasDocuments:
+          count: 1
+        template: deployment-hpa.yaml
+      - hasDocuments:
+          count: 1
+        template: serviceaccount.yaml
+
+      # Verify cross-component consistency
+      - equal:
+          path: metadata.labels.environment
+          value: "production"
+        template: deployment.yaml
+      - equal:
+          path: metadata.labels.environment
+          value: "production"
+        template: service.yaml
+      - equal:
+          path: metadata.labels.environment
+          value: "production"
+        template: ingress.yaml
+
+  - it: should deploy minimal configuration correctly
+    set:
+      replicaCount: 1
+      environment: "Development"
+      ingress:
+        create: false
+      serviceAccount:
+        create: false
+      autoscaling:
+        enabled: false
+      aadPodIdentityBinding:
+        create: false
+    asserts:
+      # Core resources should exist
+      - hasDocuments:
+          count: 1
+        template: deployment.yaml
+      - hasDocuments:
+          count: 1
+        template: service.yaml
+
+      # Optional resources should not exist
+      - hasDocuments:
+          count: 0
+        template: ingress.yaml
+      - hasDocuments:
+          count: 0
+        template: poddisruptionbudget.yaml
+      - hasDocuments:
+          count: 0
+        template: deployment-hpa.yaml
+      - hasDocuments:
+          count: 0
+        template: serviceaccount.yaml
+      - hasDocuments:
+          count: 0
+        template: podidentity.yaml
+
+  - it: should handle legacy migration configuration
+    set:
+      replicaCount: 2
+      migration:
+        existingSelectors:
+          enabled: true
+          selectors:
+            app: "legacy-app"
+            version: "v1"
+    asserts:
+      # Check deployment uses migration selectors
+      - equal:
+          path: spec.selector.matchLabels
+          value:
+            app: "legacy-app"
+            version: "v1"
+        template: deployment.yaml
+
+      # Check service uses migration selectors
+      - equal:
+          path: spec.selector
+          value:
+            app: "legacy-app"
+            version: "v1"
+        template: service.yaml
+
+      # Check PDB uses migration selectors
+      - equal:
+          path: spec.selector.matchLabels
+          value:
+            app: "legacy-app"
+            version: "v1"
+        template: poddisruptionbudget.yaml

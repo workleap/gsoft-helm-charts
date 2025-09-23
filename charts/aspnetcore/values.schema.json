@@ -1,0 +1,496 @@
+{
+  "$schema": "https://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "title": "ASP.NET Core Helm Chart Values",
+  "description": "Schema for ASP.NET Core Helm chart values",
+  "properties": {
+    "replicaCount": {
+      "type": "integer",
+      "minimum": 1,
+      "default": 2,
+      "description": "Number of ASP.NET Core replicas to deploy"
+    },
+    "terminationGracePeriodSeconds": {
+      "type": "integer",
+      "minimum": 0,
+      "default": 30,
+      "description": "The duration in seconds the pod needs to terminate gracefully"
+    },
+    "environment": {
+      "type": "string",
+      "default": "Development",
+      "description": "The ASP.NET Core environment name (DOTNET_ENVIRONMENT)",
+      "enum": ["Development", "Staging", "Production"]
+    },
+    "commonLabels": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string"
+      },
+      "description": "Labels to add to all deployed objects"
+    },
+    "commonAnnotations": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string"
+      },
+      "description": "Annotations to add to all deployed objects"
+    },
+    "image": {
+      "type": "object",
+      "properties": {
+        "registry": {
+          "type": "string",
+          "default": "mcr.microsoft.com",
+          "description": "ASP.NET Core image registry"
+        },
+        "repository": {
+          "type": "string",
+          "default": "dotnet/samples",
+          "description": "ASP.NET Core image repository"
+        },
+        "tag": {
+          "type": "string",
+          "default": "aspnetapp",
+          "description": "ASP.NET Core image tag (immutable tags are recommended)"
+        },
+        "pullPolicy": {
+          "type": "string",
+          "enum": ["Always", "IfNotPresent", "Never"],
+          "default": "IfNotPresent",
+          "description": "ASP.NET Core image pull policy"
+        }
+      },
+      "required": ["registry", "repository", "tag"],
+      "additionalProperties": false
+    },
+    "service": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Name of the service, automatically generated from the release name if not specified"
+        },
+        "port": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 65535,
+          "default": 80,
+          "description": "ASP.NET Core service HTTP port"
+        },
+        "annotations": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "Additional custom annotations for ASP.NET Core service"
+        }
+      },
+      "additionalProperties": false
+    },
+    "ingress": {
+      "type": "object",
+      "properties": {
+        "create": {
+          "type": "boolean",
+          "default": true,
+          "description": "Specifies whether an Ingress resource should be created"
+        },
+        "name": {
+          "type": "string",
+          "description": "Name of the service, automatically generated from the release name if not specified"
+        },
+        "className": {
+          "type": "string",
+          "default": "nginx",
+          "description": "IngressClass that will be be used to implement the Ingress"
+        },
+        "hostname": {
+          "type": "string",
+          "format": "hostname",
+          "default": "aspnetcore.example.local",
+          "description": "Default host for the ingress resource, a host pointing to this will be created"
+        },
+        "path": {
+          "type": "string",
+          "default": "/",
+          "description": "Default path for the ingress record"
+        },
+        "additionalPaths": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Additional paths pointing to the same service for the ingress record"
+        },
+        "pathType": {
+          "type": "string",
+          "enum": ["Exact", "Prefix", "ImplementationSpecific"],
+          "default": "Prefix",
+          "description": "Ingress path type"
+        },
+        "annotations": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "Additional annotations for the Ingress resource"
+        },
+        "proxyReadTimeout": {
+          "type": "string",
+          "default": "60",
+          "description": "Sets the proxy read timeout for nginx ingress controller in seconds. Do not include the unit. (e.g., \"60\", \"300\")"
+        },
+        "tls": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "default": false,
+              "description": "Enable TLS configuration for the host defined at ingress.hostname parameter"
+            },
+            "secretName": {
+              "type": "string",
+              "description": "The TLS secret name containing the TLS certificate for the ingress.hostname host"
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "deployment": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Name of the deployment, automatically generated from the release name if not specified"
+        }
+      },
+      "additionalProperties": false
+    },
+    "resources": {
+      "type": "object",
+      "properties": {
+        "limits": {
+          "type": "object",
+          "properties": {
+            "cpu": {
+              "type": "string"
+            },
+            "memory": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false
+        },
+        "requests": {
+          "type": "object",
+          "properties": {
+            "cpu": {
+              "type": "string"
+            },
+            "memory": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false,
+      "description": "ASP.NET Core containers' resource requests and limits"
+    },
+    "readinessProbe": {
+      "type": "object",
+      "description": "Optional YAML definition of the readinessProbe"
+    },
+    "lifecycle": {
+      "type": "string",
+      "description": "Optional YAML definition of the lifecycle"
+    },
+    "livenessProbe": {
+      "type": "object",
+      "description": "Optional YAML definition of the livenessProbe"
+    },
+    "startupProbe": {
+      "type": "object",
+      "description": "Optional YAML definition of the startupProbe"
+    },
+    "extraEnvVars": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "value": {
+            "type": "string"
+          },
+          "valueFrom": {
+            "type": "object"
+          }
+        },
+        "required": ["name"],
+        "additionalProperties": false
+      },
+      "description": "Extra environment variables to be set on ASP.NET Core container"
+    },
+    "podAnnotations": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string"
+      },
+      "description": "Annotations for ASP.NET Core pods"
+    },
+    "podLabels": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string"
+      },
+      "description": "Extra labels for ASP.NET Core pods"
+    },
+    "affinity": {
+      "type": "object",
+      "description": "Affinity for pod assignment"
+    },
+    "nodeSelector": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string"
+      },
+      "description": "Node labels for pod assignment"
+    },
+    "tolerations": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      },
+      "description": "Tolerations for pod assignment"
+    },
+    "topologySpreadConstraints": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      },
+      "description": "Topology spread constraints for pods"
+    },
+    "serviceAccount": {
+      "type": "object",
+      "properties": {
+        "create": {
+          "type": "boolean",
+          "default": false,
+          "description": "Specifies whether a ServiceAccount should be created"
+        },
+        "name": {
+          "type": "string",
+          "description": "The name of the ServiceAccount to use"
+        },
+        "annotations": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "Additional custom annotations for the ServiceAccount"
+        }
+      },
+      "additionalProperties": false
+    },
+    "aadPodIdentityBinding": {
+      "type": "object",
+      "properties": {
+        "create": {
+          "type": "boolean",
+          "default": false,
+          "description": "Whether or not to create an AAD pod identity binding associated to the deployment"
+        },
+        "name": {
+          "type": "string",
+          "description": "Name of the AAD pod identity binding"
+        },
+        "identityName": {
+          "type": "string",
+          "description": "Name of the AAD identity"
+        }
+      },
+      "additionalProperties": false
+    },
+    "azureWorkloadIdentity": {
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "default": false,
+          "description": "Whether or not to add Azure Workload Identity labels"
+        },
+        "clientId": {
+          "type": "string",
+          "description": "The Azure AD application client ID to be used with the pod"
+        }
+      },
+      "additionalProperties": false
+    },
+    "podDisruptionBudget": {
+      "type": "object",
+      "properties": {
+        "minAvailable": {
+          "oneOf": [
+            {
+              "type": "integer",
+              "minimum": 1,
+              "description": "The number of pods from that set that must still be available after the eviction. Must be less than replicaCount to avoid deployment deadlocks."
+            },
+            {
+              "type": "string",
+              "pattern": "^\\d+%$",
+              "description": "The percentage of pods from that set that must still be available after the eviction. Must result in a value less than replicaCount."
+            }
+          ],
+          "default": 1,
+          "description": "The number of pods from that set that must still be available after the eviction. IMPORTANT: This value must be less than replicaCount to prevent deployment deadlocks during cluster maintenance."
+        }
+      },
+      "additionalProperties": false
+    },
+    "autoscaling": {
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable autoscaling"
+        },
+        "name": {
+          "type": "string",
+          "description": "Name of the HPA resource"
+        },
+        "minReplicas": {
+          "type": "integer",
+          "minimum": 1,
+          "default": 2,
+          "description": "Minimum number of ASP.NET Core replicas"
+        },
+        "maxReplicas": {
+          "type": "integer",
+          "minimum": 1,
+          "default": 3,
+          "description": "Maximum number of ASP.NET Core replicas"
+        },
+        "targetCPUUtilizationPercentage": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100,
+          "default": 80,
+          "description": "Target CPU utilization percentage for autoscaling"
+        }
+      },
+      "additionalProperties": false
+    },
+    "extraVolumes": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      },
+      "description": "Optionally specify extra list of additional volumes"
+    },
+    "extraVolumeMounts": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      },
+      "description": "Optionally specify extra list of additional volumeMounts"
+    },
+    "certificateStore": {
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "default": false,
+          "description": "Whether or not to replace the container's certificate store with Workleap's"
+        },
+        "configMapName": {
+          "type": "string",
+          "default": "workleap-trust-bundle",
+          "description": "The name of the ConfigMap containing the certificate store"
+        },
+        "fileName": {
+          "type": "string",
+          "default": "ca-certificates.crt",
+          "description": "The name of the file inside the ConfigMap to mount as the certificate store"
+        }
+      },
+      "additionalProperties": false
+    },
+    "securityContext": {
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "default": false,
+          "description": "Enable security context"
+        },
+        "sysctls": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "value": {
+                "type": "string"
+              }
+            },
+            "required": ["name", "value"],
+            "additionalProperties": false
+          },
+          "description": "List of sysctls to set in the container"
+        }
+      },
+      "additionalProperties": false
+    },
+    "migration": {
+      "type": "object",
+      "properties": {
+        "existingSelectors": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "default": false,
+              "description": "Whether or not to use existing selectors for the deployment"
+            },
+            "selectors": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "string"
+              },
+              "description": "A map of existing selectors to use for the deployment"
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "presets": {
+      "type": "object",
+      "properties": {
+        "spreadAcrossNodes": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "default": true,
+              "description": "Configure topologySpreadConstraints for spreading pods across nodes"
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

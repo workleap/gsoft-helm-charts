@@ -1,0 +1,148 @@
+suite: ingress tests
+templates:
+  - ingress.yaml
+tests:
+  - it: should not create ingress when ingress.create is false
+    set:
+      ingress:
+        create: false
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: should create ingress when ingress.create is true
+    set:
+      ingress:
+        create: true
+        hostname: "example.com"
+        className: "nginx"
+        path: "/"
+        pathType: "Prefix"
+    asserts:
+      - hasDocuments:
+          count: 1
+      - isKind:
+          of: Ingress
+      - equal:
+          path: metadata.name
+          value: RELEASE-NAME-ingress
+      - equal:
+          path: spec.ingressClassName
+          value: "nginx"
+      - equal:
+          path: spec.rules[0].host
+          value: "example.com"
+
+  - it: should include TLS when ingress.tls.enabled is true
+    set:
+      ingress:
+        create: true
+        hostname: "example.com"
+        className: "nginx"
+        tls:
+          enabled: true
+          secretName: "example-tls"
+    asserts:
+      - hasDocuments:
+          count: 1
+      - isKind:
+          of: Ingress
+      - equal:
+          path: spec.tls[0].hosts[0]
+          value: "example.com"
+      - equal:
+          path: spec.tls[0].secretName
+          value: "example-tls"
+
+  - it: should not include TLS when ingress.tls.enabled is false
+    set:
+      ingress:
+        create: true
+        hostname: "example.com"
+        className: "nginx"
+        tls:
+          enabled: false
+    asserts:
+      - hasDocuments:
+          count: 1
+      - isKind:
+          of: Ingress
+      - isNull:
+          path: spec.tls
+
+  - it: should apply commonLabels and commonAnnotations
+    set:
+      ingress:
+        create: true
+        hostname: "example.com"
+        className: "nginx"
+      commonLabels:
+        environment: "production"
+      commonAnnotations:
+        owner: "team-a"
+    asserts:
+      - hasDocuments:
+          count: 1
+      - equal:
+          path: metadata.labels.environment
+          value: "production"
+      - equal:
+          path: metadata.annotations.owner
+          value: "team-a"
+
+  - it: should include additional paths when specified
+    set:
+      ingress:
+        create: true
+        hostname: "example.com"
+        className: "nginx"
+        path: "/"
+        pathType: "Prefix"
+        additionalPaths:
+          - "/api"
+          - "/health"
+    asserts:
+      - hasDocuments:
+          count: 1
+      - isKind:
+          of: Ingress
+      - equal:
+          path: spec.rules[0].http.paths[0].path
+          value: "/"
+      - equal:
+          path: spec.rules[0].http.paths[1].path
+          value: "/api"
+      - equal:
+          path: spec.rules[0].http.paths[2].path
+          value: "/health"
+
+  - it: should set default proxy read timeout annotation
+    set:
+      ingress:
+        create: true
+        hostname: "example.com"
+        className: "nginx"
+    asserts:
+      - hasDocuments:
+          count: 1
+      - isKind:
+          of: Ingress
+      - equal:
+          path: metadata.annotations["nginx.ingress.kubernetes.io/proxy-read-timeout"]
+          value: "60"
+
+  - it: should set custom proxy read timeout annotation
+    set:
+      ingress:
+        create: true
+        hostname: "example.com"
+        className: "nginx"
+        proxyReadTimeout: "300"
+    asserts:
+      - hasDocuments:
+          count: 1
+      - isKind:
+          of: Ingress
+      - equal:
+          path: metadata.annotations["nginx.ingress.kubernetes.io/proxy-read-timeout"]
+          value: "300"

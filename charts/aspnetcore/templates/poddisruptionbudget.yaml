@@ -1,3 +1,4 @@
+{{- if ne ((.Values.replicaCount | int)) 1 }}
 apiVersion: policy/v1
 kind: PodDisruptionBudget
 metadata:
@@ -11,3 +12,4 @@ spec:
       {{- else }}
         {{ include "aspnetcore.selectorLabels" . | nindent 6 }}
       {{- end }}
+{{- end }}

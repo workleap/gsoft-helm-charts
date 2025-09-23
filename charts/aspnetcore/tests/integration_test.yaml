@@ -1,0 +1,144 @@
+suite: integration tests
+templates:
+  - deployment.yaml
+  - service.yaml
+  - ingress.yaml
+  - poddisruptionbudget.yaml
+  - deployment-hpa.yaml
+  - serviceaccount.yaml
+  - podidentity.yaml
+tests:
+  - it: should create all resources with common configuration
+    set:
+      replicaCount: 3
+      commonLabels:
+        environment: "production"
+        app: "my-app"
+      commonAnnotations:
+        version: "1.0.0"
+        team: "platform"
+      ingress:
+        create: true
+        hostname: "my-app.example.com"
+        className: "nginx"
+      serviceAccount:
+        create: true
+      autoscaling:
+        enabled: true
+        minReplicas: 2
+        maxReplicas: 10
+    asserts:
+      # Deployment should exist
+      - hasDocuments:
+          count: 1
+        template: deployment.yaml
+      - isKind:
+          of: Deployment
+        template: deployment.yaml
+      - equal:
+          path: metadata.labels.environment
+          value: "production"
+        template: deployment.yaml
+
+      # Service should exist
+      - hasDocuments:
+          count: 1
+        template: service.yaml
+      - isKind:
+          of: Service
+        template: service.yaml
+      - equal:
+          path: metadata.labels.environment
+          value: "production"
+        template: service.yaml
+
+      # Ingress should exist
+      - hasDocuments:
+          count: 1
+        template: ingress.yaml
+      - isKind:
+          of: Ingress
+        template: ingress.yaml
+      - equal:
+          path: metadata.labels.environment
+          value: "production"
+        template: ingress.yaml
+
+      # PDB should exist (replicaCount > 1)
+      - hasDocuments:
+          count: 1
+        template: poddisruptionbudget.yaml
+      - isKind:
+          of: PodDisruptionBudget
+        template: poddisruptionbudget.yaml
+
+      # HPA should exist
+      - hasDocuments:
+          count: 1
+        template: deployment-hpa.yaml
+      - isKind:
+          of: HorizontalPodAutoscaler
+        template: deployment-hpa.yaml
+      - equal:
+          path: metadata.labels.environment
+          value: "production"
+        template: deployment-hpa.yaml
+
+      # ServiceAccount should exist
+      - hasDocuments:
+          count: 1
+        template: serviceaccount.yaml
+      - isKind:
+          of: ServiceAccount
+        template: serviceaccount.yaml
+      - equal:
+          path: metadata.labels.environment
+          value: "production"
+        template: serviceaccount.yaml
+
+  - it: should handle minimal configuration correctly
+    set:
+      replicaCount: 1
+      ingress:
+        create: false
+      serviceAccount:
+        create: false
+      autoscaling:
+        enabled: false
+      aadPodIdentityBinding:
+        create: false
+    asserts:
+      # Deployment should exist
+      - hasDocuments:
+          count: 1
+        template: deployment.yaml
+
+      # Service should exist
+      - hasDocuments:
+          count: 1
+        template: service.yaml
+
+      # Ingress should not exist
+      - hasDocuments:
+          count: 0
+        template: ingress.yaml
+
+      # PDB should not exist (replicaCount = 1)
+      - hasDocuments:
+          count: 0
+        template: poddisruptionbudget.yaml
+
+      # HPA should not exist
+      - hasDocuments:
+          count: 0
+        template: deployment-hpa.yaml
+
+      # ServiceAccount should not exist
+      - hasDocuments:
+          count: 0
+        template: serviceaccount.yaml
+
+      # PodIdentity should not exist
+      - hasDocuments:
+          count: 0
+        template: podidentity.yaml
