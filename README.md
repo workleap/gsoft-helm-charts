@@ -10,6 +10,18 @@ By default, this chart bootstraps the [official ASP.NET Core sample application]
 Please read the documented [`charts/aspnetcore/values.yaml`](charts/aspnetcore/values.yaml) file to understand how to override default values in order to deploy your own ASP.NET Core application.
 
 
+### Values Schema
+
+The chart includes a JSON schema file [`charts/aspnetcore/values.schema.json`](charts/aspnetcore/values.schema.json) that defines the structure and validation rules for the values. This schema provides:
+
+- Type validation for configuration values
+- Default values documentation
+- Property descriptions
+- Enum constraints where applicable
+
+> **Important**: When making changes to the values definition in `values.yaml`, ensure that the corresponding `values.schema.json` file is updated to maintain consistency and proper validation.
+
+
 ### Installing the chart
 
 The recommended way is to add this chart [as a dependency of your chart](https://helm.sh/docs/helm/helm_dependency/):
