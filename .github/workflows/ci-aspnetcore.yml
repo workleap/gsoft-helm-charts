@@ -6,14 +6,14 @@ on:
     paths:
       - "charts/aspnetcore/**"
       - ".github/workflows/ci-aspnetcore.yml"
-  
+
   push:
     branches:
       - "renovate/**"
     paths:
       - "charts/aspnetcore/**"
       - ".github/workflows/ci-aspnetcore.yml"
-    
+
 jobs:
   lint:
     name: Lint Helm chart
@@ -35,6 +35,9 @@ jobs:
         run: |
           helm plugin install https://github.com/melmorabity/helm-kubeconform --version 0.6.7.1
           helm kubeconform ./charts/aspnetcore/ --values ./charts/aspnetcore/values.yaml --strict
+
+      - name: Run unit tests
+        run: make tests
 
   # Inspired from https://github.com/kedacore/charts/blob/v2.9.4/.github/workflows/ci-core.yml
   deploy:
