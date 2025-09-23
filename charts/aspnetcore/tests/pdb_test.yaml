@@ -1,0 +1,55 @@
+suite: test poddisruptionbudget behavior
+templates:
+  - poddisruptionbudget.yaml
+tests:
+  - it: should not create PDB when replicaCount=1 (default)
+    set:
+      replicaCount: 1
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: should create PDB when replicaCount>1
+    set:
+      replicaCount: 2
+    asserts:
+      - hasDocuments:
+          count: 1
+      - isKind:
+          of: PodDisruptionBudget
+      - equal:
+          path: metadata.name
+          value: RELEASE-NAME-pdb
+      - equal:
+          path: spec.selector.matchLabels
+          value:
+            app.kubernetes.io/name: aspnetcore
+            app.kubernetes.io/instance: RELEASE-NAME
+
+  - it: should create PDB with correct minAvailable when specified
+    set:
+      replicaCount: 3
+      podDisruptionBudget:
+        minAvailable: 2
+    asserts:
+      - hasDocuments:
+          count: 1
+      - isKind:
+          of: PodDisruptionBudget
+      - equal:
+          path: spec.minAvailable
+          value: 2
+
+  - it: should create PDB with percentage minAvailable
+    set:
+      replicaCount: 4
+      podDisruptionBudget:
+        minAvailable: "50%"
+    asserts:
+      - hasDocuments:
+          count: 1
+      - isKind:
+          of: PodDisruptionBudget
+      - equal:
+          path: spec.minAvailable
+          value: "50%"
