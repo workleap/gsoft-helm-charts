@@ -9,7 +9,7 @@
 {{- else}}
     {{- if gt (int .Values.replicaCount) 1 }}
         {{- if le (int .Values.replicaCount) (int .Values.podDisruptionBudget.minAvailable) }}
-        {{- fail "replicaCount cannot be less or equal to podDisruptionBudget.minAvailable" }}
+        {{- fail "replicaCount cannot be less than or equal to podDisruptionBudget.minAvailable" }}
         {{- end }}
     {{- end }}
 {{- end }}
