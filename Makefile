@@ -145,7 +145,7 @@ tests/schema/service-port-zero:
 	@${HELM_TEMPLATE} --set service.port=0 ${SHOULD_FAIL_WITH_ERROR_AND_THEN} ${DISPLAY_RESULT}
 
 # Test service.port maximum validation (should fail with port=65536)
-tests/schema/service-port-in-range: export TEST_DISPLAY_NAME="Schema should reject port greater than 65535"
+tests/schema/service-port-in-range: export TEST_DISPLAY_NAME="Schema should accept port in valid range"
 tests/schema/service-port-in-range:
 	@${HELM_TEMPLATE} --set service.port=8080 ${SHOULD_SUCCEED_AND_THEN} ${DISPLAY_RESULT}
 

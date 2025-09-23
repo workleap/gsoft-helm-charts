@@ -1,0 +1,300 @@
+suite: deployment tests
+templates:
+  - deployment.yaml
+tests:
+  - it: should render successfully with default values
+    asserts:
+      - hasDocuments:
+          count: 1
+      - isKind:
+          of: Deployment
+      - equal:
+          path: metadata.name
+          value: RELEASE-NAME-deployment
+
+  - it: should pass with valid environment value
+    set:
+      environment: "Production"
+    asserts:
+      - hasDocuments:
+          count: 1
+      - isKind:
+          of: Deployment
+
+  - it: should pass with valid extraEnvVars
+    set:
+      extraEnvVars:
+        - name: "TEST_VAR"
+          value: "test"
+    asserts:
+      - hasDocuments:
+          count: 1
+      - isKind:
+          of: Deployment
+
+  - it: should use migration existing selectors when enabled
+    set:
+      migration:
+        existingSelectors:
+          enabled: true
+          selectors:
+            old-app: "legacy"
+            version: "v1"
+    asserts:
+      - hasDocuments:
+          count: 1
+      - equal:
+          path: spec.selector.matchLabels
+          value:
+            old-app: "legacy"
+            version: "v1"
+      - equal:
+          path: spec.template.metadata.labels
+          value:
+            old-app: "legacy"
+            version: "v1"
+
+  - it: should apply commonLabels
+    set:
+      commonLabels:
+        environment: "production"
+        team: "platform"
+    asserts:
+      - hasDocuments:
+          count: 1
+      - equal:
+          path: metadata.labels.environment
+          value: "production"
+      - equal:
+          path: metadata.labels.team
+          value: "platform"
+
+  - it: should apply commonAnnotations
+    set:
+      commonAnnotations:
+        owner: "team-a"
+        version: "1.0.0"
+    asserts:
+      - hasDocuments:
+          count: 1
+      - equal:
+          path: metadata.annotations.owner
+          value: "team-a"
+      - equal:
+          path: metadata.annotations.version
+          value: "1.0.0"
+
+  - it: should apply podLabels to pod template
+    set:
+      podLabels:
+        tier: "backend"
+        component: "api"
+    asserts:
+      - hasDocuments:
+          count: 1
+      - equal:
+          path: spec.template.metadata.labels.tier
+          value: "backend"
+      - equal:
+          path: spec.template.metadata.labels.component
+          value: "api"
+
+  - it: should set automountServiceAccountToken to true when aadPodIdentityBinding is enabled
+    set:
+      aadPodIdentityBinding:
+        create: true
+        identityName: "test-identity"
+    asserts:
+      - hasDocuments:
+          count: 1
+      - equal:
+          path: spec.template.spec.automountServiceAccountToken
+          value: true
+      - equal:
+          path: spec.template.metadata.labels.aadpodidbinding
+          value: "test-identity"
+
+  - it: should set automountServiceAccountToken to false when aadPodIdentityBinding is disabled
+    set:
+      aadPodIdentityBinding:
+        create: false
+    asserts:
+      - hasDocuments:
+          count: 1
+      - equal:
+          path: spec.template.spec.automountServiceAccountToken
+          value: false
+
+  - it: should add azure workload identity label when enabled
+    set:
+      azureWorkloadIdentity:
+        enabled: true
+    asserts:
+      - hasDocuments:
+          count: 1
+      - equal:
+          path: spec.template.metadata.labels["azure.workload.identity/use"]
+          value: "true"
+
+  - it: should apply securityContext when enabled
+    set:
+      securityContext:
+        enabled: true
+        sysctls:
+          - name: "net.core.somaxconn"
+            value: "65535"
+    asserts:
+      - hasDocuments:
+          count: 1
+      - equal:
+          path: spec.template.spec.securityContext.sysctls[0].name
+          value: "net.core.somaxconn"
+      - equal:
+          path: spec.template.spec.securityContext.sysctls[0].value
+          value: "65535"
+
+  - it: should not apply securityContext when disabled
+    set:
+      securityContext:
+        enabled: false
+    asserts:
+      - hasDocuments:
+          count: 1
+      - isNull:
+          path: spec.template.spec.securityContext
+
+  - it: should use custom topologySpreadConstraints when provided
+    set:
+      topologySpreadConstraints:
+        - maxSkew: 2
+          topologyKey: "zone"
+          whenUnsatisfiable: "DoNotSchedule"
+    asserts:
+      - hasDocuments:
+          count: 1
+      - equal:
+          path: spec.template.spec.topologySpreadConstraints[0].maxSkew
+          value: 2
+      - equal:
+          path: spec.template.spec.topologySpreadConstraints[0].topologyKey
+          value: "zone"
+
+  - it: should use spread across nodes preset when enabled and no custom constraints
+    set:
+      presets:
+        spreadAcrossNodes:
+          enabled: true
+    asserts:
+      - hasDocuments:
+          count: 1
+      - equal:
+          path: spec.template.spec.topologySpreadConstraints[0].maxSkew
+          value: 1
+      - equal:
+          path: spec.template.spec.topologySpreadConstraints[0].topologyKey
+          value: "kubernetes.io/hostname"
+
+  - it: should mount certificate store when enabled
+    set:
+      certificateStore:
+        enabled: true
+        configMapName: "ca-certificates"
+        fileName: "ca-bundle.crt"
+    asserts:
+      - hasDocuments:
+          count: 1
+      - equal:
+          path: spec.template.spec.containers[0].volumeMounts[0].name
+          value: "certificate-store"
+      - equal:
+          path: spec.template.spec.containers[0].volumeMounts[0].mountPath
+          value: "/etc/ssl/certs/ca-certificates.crt"
+      - equal:
+          path: spec.template.spec.volumes[0].name
+          value: "certificate-store"
+      - equal:
+          path: spec.template.spec.volumes[0].configMap.name
+          value: "ca-certificates"
+
+  - it: should include extraVolumes and extraVolumeMounts when provided
+    set:
+      extraVolumes:
+        - name: "config-volume"
+          configMap:
+            name: "app-config"
+      extraVolumeMounts:
+        - name: "config-volume"
+          mountPath: "/app/config"
+    asserts:
+      - hasDocuments:
+          count: 1
+      - equal:
+          path: spec.template.spec.volumes[0].name
+          value: "config-volume"
+      - equal:
+          path: spec.template.spec.containers[0].volumeMounts[0].name
+          value: "config-volume"
+
+  - it: should include lifecycle configuration when provided
+    set:
+      lifecycle: |
+        preStop:
+          exec:
+            command: ["/bin/sh", "-c", "sleep 15"]
+    asserts:
+      - hasDocuments:
+          count: 1
+      - equal:
+          path: spec.template.spec.containers[0].lifecycle.preStop.exec.command
+          value: ["/bin/sh", "-c", "sleep 15"]
+
+  - it: should include readinessProbe when provided
+    set:
+      readinessProbe:
+        httpGet:
+          path: "/health"
+          port: 8080
+        initialDelaySeconds: 10
+    asserts:
+      - hasDocuments:
+          count: 1
+      - equal:
+          path: spec.template.spec.containers[0].readinessProbe.httpGet.path
+          value: "/health"
+      - equal:
+          path: spec.template.spec.containers[0].readinessProbe.initialDelaySeconds
+          value: 10
+
+  - it: should include livenessProbe when provided
+    set:
+      livenessProbe:
+        httpGet:
+          path: "/health"
+          port: 8080
+        initialDelaySeconds: 30
+    asserts:
+      - hasDocuments:
+          count: 1
+      - equal:
+          path: spec.template.spec.containers[0].livenessProbe.httpGet.path
+          value: "/health"
+      - equal:
+          path: spec.template.spec.containers[0].livenessProbe.initialDelaySeconds
+          value: 30
+
+  - it: should include startupProbe when provided
+    set:
+      startupProbe:
+        httpGet:
+          path: "/startup"
+          port: 8080
+        failureThreshold: 10
+    asserts:
+      - hasDocuments:
+          count: 1
+      - equal:
+          path: spec.template.spec.containers[0].startupProbe.httpGet.path
+          value: "/startup"
+      - equal:
+          path: spec.template.spec.containers[0].startupProbe.failureThreshold
+          value: 10
