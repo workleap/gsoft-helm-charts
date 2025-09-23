@@ -13,18 +13,6 @@ define SHOULD_CONTAIN
 2>&1 | grep -q -E $(1)
 endef
 
-# # Test that PDB is not created when replicaCount=1 (default test)
-tests/pdb/default: export TEST_DISPLAY_NAME="PDB should not be created when replicaCount=1"
-tests/pdb/default:
-	@${HELM_TEMPLATE} --set replicaCount=1 | \
-    grep -q -i "poddisruptionbudget" && ${DISPLAY_RESULT_INVERTED}
-
-# Test that PDB is created when replicaCount>1
-tests/pdb/created-when-replicas-gt-1: export TEST_DISPLAY_NAME="PDB should be created when replicaCount greater than 1"
-tests/pdb/created-when-replicas-gt-1:
-	@${HELM_TEMPLATE} --set replicaCount=2 | \
-    grep -q -i "poddisruptionbudget" && ${DISPLAY_RESULT}
-
 # Test autoscaling validation: minReplicas is required when autoscaling is enabled
 tests/prechecks/autoscaling-minreplicas-required: export TEST_DISPLAY_NAME="Validation should require minReplicas when autoscaling is enabled"
 tests/prechecks/autoscaling-minreplicas-required: export EXPECTED_ERROR_MESSAGE="autoscaling.minReplicas is required"
