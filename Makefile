@@ -49,14 +49,14 @@ tests/prechecks/autoscaling-minreplicas-less-than-minavailable:
 
 # Test replicaCount with minReplicas exactly equal to minAvailable
 tests/prechecks/replicaCount-minreplicas-equal-minavailable: export TEST_DISPLAY_NAME="Validation should prevent replicaCount equal to minAvailable"
-tests/prechecks/replicaCount-minreplicas-equal-minavailable: export EXPECTED_ERROR_MESSAGE="replicaCount cannot be less or equal to podDisruptionBudget.minAvailable"
+tests/prechecks/replicaCount-minreplicas-equal-minavailable: export EXPECTED_ERROR_MESSAGE="replicaCount cannot be less than or equal to podDisruptionBudget.minAvailable"
 tests/prechecks/replicaCount-minreplicas-equal-minavailable:
 	@${HELM_TEMPLATE} --set autoscaling.enabled=false --set replicaCount=2 --set podDisruptionBudget.minAvailable=2 ${SHOULD_FAIL_WITH_ERROR_AND_THEN} ${DISPLAY_RESULT}
 
 
 # Test replicaCount with minReplicas less than minAvailable
 tests/prechecks/replicaCount-minreplicas-less-than-minavailable: export TEST_DISPLAY_NAME="Validation should prevent minReplicas less than minAvailable"
-tests/prechecks/replicaCount-minreplicas-less-than-minavailable: export EXPECTED_ERROR_MESSAGE="replicaCount cannot be less or equal to podDisruptionBudget.minAvailable"
+tests/prechecks/replicaCount-minreplicas-less-than-minavailable: export EXPECTED_ERROR_MESSAGE="replicaCount cannot be less than or equal to podDisruptionBudget.minAvailable"
 tests/prechecks/replicaCount-minreplicas-less-than-minavailable:
 	@${HELM_TEMPLATE} --set autoscaling.enabled=false --set replicaCount=2 --set podDisruptionBudget.minAvailable=3 ${SHOULD_FAIL_WITH_ERROR_AND_THEN} ${DISPLAY_RESULT}
 
