@@ -9,7 +9,6 @@ HELM_UNITTEST_PLUGIN_GIT = https://github.com/helm-unittest/helm-unittest.git
 
 HELM_TEMPLATE = helm template ${HELM_RELEASE_NAME} charts/aspnetcore
 DISPLAY_RESULT = echo "✅ PASS: $@ - ${TEST_DISPLAY_NAME}" || echo "❌ ERROR: $@ FAILED - ${TEST_DISPLAY_NAME}"
-DISPLAY_RESULT_INVERTED = echo "❌ ERROR: $@ FAILED - ${TEST_DISPLAY_NAME}" || echo "✅ PASS: $@ - ${TEST_DISPLAY_NAME}"
 SHOULD_SUCCEED_AND_THEN = >/dev/null 2>&1 &&
 SHOULD_FAIL_WITH_ERROR_AND_THEN = 2>&1 | grep -q -E ${EXPECTED_ERROR_MESSAGE} &&
 
