@@ -28,10 +28,6 @@ $(HELM_UNITTEST_PLUGIN):
 tests/helm-unittests: $(HELM_UNITTEST_PLUGIN)
 	@helm unittest charts/aspnetcore
 
-foo:
-	@echo ${CI}
-	@echo ${FAIL_ON_ERRORS}
-
 # Test autoscaling validation: minReplicas is required when autoscaling is enabled
 tests/prechecks/autoscaling-minreplicas-required: export TEST_DISPLAY_NAME="Validation should require minReplicas when autoscaling is enabled"
 tests/prechecks/autoscaling-minreplicas-required: export EXPECTED_ERROR_MESSAGE="autoscaling.minReplicas is required"
