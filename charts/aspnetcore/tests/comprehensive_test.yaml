@@ -7,7 +7,6 @@ templates:
   - deployment-hpa.yaml
   - serviceaccount.yaml
   - podidentity.yaml
-  - prechecks.yaml
 tests:
   # =============================================================================
   # PodDisruptionBudget Tests
