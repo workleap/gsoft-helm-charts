@@ -7,8 +7,13 @@ HELM_PLUGINS = $(shell helm env HELM_PLUGINS)
 HELM_UNITTEST_PLUGIN = $(HELM_PLUGINS)/helm-unittest.git
 HELM_UNITTEST_PLUGIN_GIT = https://github.com/helm-unittest/helm-unittest.git
 
+# When running in CI, fail the entire make process if any test fails so that the job is reported as failed.
+# When running locally, do not fail the entire make process if a test fails so that all tests can be run and the user can see all failures at once.
+FAIL_ON_ERRORS ?= ${CI}
+EXIT_CODE = $(if $(filter TRUE true 1,$(FAIL_ON_ERRORS)),1,0)
+
 HELM_TEMPLATE = helm template ${HELM_RELEASE_NAME} charts/aspnetcore
-DISPLAY_RESULT = echo "✅ PASS: $@ - ${TEST_DISPLAY_NAME}" || (echo "❌ ERROR: $@ FAILED - ${TEST_DISPLAY_NAME}" && exit 1)
+DISPLAY_RESULT = echo "✅ PASS: $@ - ${TEST_DISPLAY_NAME}" || (echo "❌ ERROR: $@ FAILED - ${TEST_DISPLAY_NAME}" && exit ${EXIT_CODE})
 SHOULD_SUCCEED_AND_THEN = >/dev/null 2>&1 &&
 SHOULD_FAIL_WITH_ERROR_AND_THEN = 2>&1 | grep -q -E ${EXPECTED_ERROR_MESSAGE} &&
 
@@ -22,6 +27,10 @@ $(HELM_UNITTEST_PLUGIN):
 
 tests/helm-unittests: $(HELM_UNITTEST_PLUGIN)
 	@helm unittest charts/aspnetcore
+
+foo:
+	@echo ${CI}
+	@echo ${FAIL_ON_ERRORS}
 
 # Test autoscaling validation: minReplicas is required when autoscaling is enabled
 tests/prechecks/autoscaling-minreplicas-required: export TEST_DISPLAY_NAME="Validation should require minReplicas when autoscaling is enabled"
