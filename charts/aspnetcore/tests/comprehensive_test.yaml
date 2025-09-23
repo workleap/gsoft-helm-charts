@@ -32,43 +32,6 @@ tests:
           value: RELEASE-NAME-pdb
 
   # =============================================================================
-  # Prechecks / Validation Logic Tests
-  # =============================================================================
-  - it: should fail when autoscaling enabled but minReplicas missing
-    template: prechecks.yaml
-    set:
-      autoscaling:
-        enabled: true
-        minReplicas: null
-    asserts:
-      - failedTemplate:
-          errorMessage: "autoscaling.minReplicas is required"
-
-  - it: should fail when minReplicas equals minAvailable (deadlock)
-    template: prechecks.yaml
-    set:
-      autoscaling:
-        enabled: true
-        minReplicas: 2
-      podDisruptionBudget:
-        minAvailable: 2
-    asserts:
-      - failedTemplate:
-          errorMessage: "autoscaling.minReplicas cannot be less than podDisruptionBudget.minAvailable"
-
-  - it: should pass with valid autoscaling configuration
-    template: prechecks.yaml
-    set:
-      autoscaling:
-        enabled: true
-        minReplicas: 3
-      podDisruptionBudget:
-        minAvailable: 1
-    asserts:
-      - hasDocuments:
-          count: 0
-
-  # =============================================================================
   # Positive Test Cases
   # =============================================================================
   - it: should render deployment successfully with default values

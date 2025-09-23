@@ -3,6 +3,10 @@ ALL_TEST_TARGETS := $(shell grep -E '^tests/[^:]*:' $(MAKEFILE_LIST) | sed 's/:.
 
 PHONY: $(ALL_TEST_TARGETS)
 
+HELM_PLUGINS = $(shell helm env HELM_PLUGINS)
+HELM_UNITTEST_PLUGIN = $(HELM_PLUGINS)/helm-unittest.git
+HELM_UNITTEST_PLUGIN_GIT = https://github.com/helm-unittest/helm-unittest.git
+
 HELM_TEMPLATE = helm template ${HELM_RELEASE_NAME} charts/aspnetcore
 DISPLAY_RESULT = echo "✅ PASS: $@ - ${TEST_DISPLAY_NAME}" || echo "❌ ERROR: $@ FAILED - ${TEST_DISPLAY_NAME}"
 DISPLAY_RESULT_INVERTED = echo "❌ ERROR: $@ FAILED - ${TEST_DISPLAY_NAME}" || echo "✅ PASS: $@ - ${TEST_DISPLAY_NAME}"
@@ -12,6 +16,13 @@ SHOULD_FAIL_WITH_ERROR_AND_THEN = 2>&1 | grep -q -E ${EXPECTED_ERROR_MESSAGE} &&
 define SHOULD_CONTAIN
 2>&1 | grep -q -E $(1)
 endef
+
+$(HELM_UNITTEST_PLUGIN):
+	@echo "Installing helm unittest plugin..."
+	@helm plugin install $(HELM_UNITTEST_PLUGIN_GIT)
+
+tests/helm-unittests: $(HELM_UNITTEST_PLUGIN)
+	@helm unittest charts/aspnetcore
 
 # Test autoscaling validation: minReplicas is required when autoscaling is enabled
 tests/prechecks/autoscaling-minreplicas-required: export TEST_DISPLAY_NAME="Validation should require minReplicas when autoscaling is enabled"
