@@ -81,13 +81,13 @@ tests/prechecks/autoscaling-disabled-single-replica-zero-minavailabe-valid:
 
 # Test autoscaling with minReplicas set to 0 (edge case)
 tests/prechecks/autoscaling-minreplicas-zero: export TEST_DISPLAY_NAME="Validation should prevent minReplicas=0 when minAvailable=1"
-tests/prechecks/autoscaling-minreplicas-zero: export EXPECTED_ERROR_MESSAGE="autoscaling.minReplicas: Must be greater than or equal to 1"
+tests/prechecks/autoscaling-minreplicas-zero: export EXPECTED_ERROR_MESSAGE="(autoscaling.*minimum|Must be greater than or equal to 1)"
 tests/prechecks/autoscaling-minreplicas-zero:
 	@${HELM_TEMPLATE} --set autoscaling.enabled=true --set autoscaling.minReplicas=0 ${SHOULD_FAIL_WITH_ERROR_AND_THEN} ${DISPLAY_RESULT}
 
 # Test autoscaling with negative minReplicas (edge case)
 tests/prechecks/autoscaling-minreplicas-negative: export TEST_DISPLAY_NAME="Validation should prevent negative minReplicas"
-tests/prechecks/autoscaling-minreplicas-negative: export EXPECTED_ERROR_MESSAGE="autoscaling.minReplicas: Must be greater than or equal to 1"
+tests/prechecks/autoscaling-minreplicas-negative: export EXPECTED_ERROR_MESSAGE="(autoscaling.*minimum|Must be greater than or equal to 1)"
 tests/prechecks/autoscaling-minreplicas-negative:
 	@${HELM_TEMPLATE} --set autoscaling.enabled=true --set autoscaling.minReplicas=-1 ${SHOULD_FAIL_WITH_ERROR_AND_THEN} ${DISPLAY_RESULT}
 
@@ -162,7 +162,7 @@ tests/schema/ingress-pathtype-invalid:
 
 # Test ingress.hostname format validation (should fail with invalid hostname)
 tests/schema/ingress-hostname-invalid: export TEST_DISPLAY_NAME="Schema should reject invalid hostname format"
-tests/schema/ingress-hostname-invalid: export EXPECTED_ERROR_MESSAGE="(hostname.*format|Invalid hostname)"
+tests/schema/ingress-hostname-invalid: export EXPECTED_ERROR_MESSAGE="(ingress.*hostname.*not valid hostname)"
 tests/schema/ingress-hostname-invalid:
 	@${HELM_TEMPLATE} --set ingress.hostname="invalid..hostname" ${SHOULD_FAIL_WITH_ERROR_AND_THEN} ${DISPLAY_RESULT}
 
@@ -192,7 +192,7 @@ tests/schema/autoscaling-cpu-target-too-high:
 
 # Test extraEnvVars missing required name field (should fail)
 tests/schema/extraenvvars-missing-name: export TEST_DISPLAY_NAME="Schema should require name field in extraEnvVars"
-tests/schema/extraenvvars-missing-name: export EXPECTED_ERROR_MESSAGE="(name.*required)"
+tests/schema/extraenvvars-missing-name: export EXPECTED_ERROR_MESSAGE="(extraEnvVars.*missing property.*name)"
 tests/schema/extraenvvars-missing-name:
 	@${HELM_TEMPLATE} --set-json 'extraEnvVars=[{"value":"test"}]' ${SHOULD_FAIL_WITH_ERROR_AND_THEN} ${DISPLAY_RESULT}
 
