@@ -3,11 +3,15 @@ ALL_TEST_TARGETS := $(shell grep -E '^tests/[^:]*:' $(MAKEFILE_LIST) | sed 's/:.
 
 PHONY: $(ALL_TEST_TARGETS)
 
-HELM_TEMPLATE = helm template charts/aspnetcore
+HELM_TEMPLATE = helm template ${HELM_RELEASE_NAME} charts/aspnetcore
 DISPLAY_RESULT = echo "✅ PASS: $@ - ${TEST_DISPLAY_NAME}" || echo "❌ ERROR: $@ FAILED - ${TEST_DISPLAY_NAME}"
 DISPLAY_RESULT_INVERTED = echo "❌ ERROR: $@ FAILED - ${TEST_DISPLAY_NAME}" || echo "✅ PASS: $@ - ${TEST_DISPLAY_NAME}"
 SHOULD_SUCCEED_AND_THEN = >/dev/null 2>&1 &&
 SHOULD_FAIL_WITH_ERROR_AND_THEN = 2>&1 | grep -q -E ${EXPECTED_ERROR_MESSAGE} &&
+
+define SHOULD_CONTAIN
+2>&1 | grep -q -E $(1)
+endef
 
 # # Test that PDB is not created when replicaCount=1 (default test)
 tests/pdb/default: export TEST_DISPLAY_NAME="PDB should not be created when replicaCount=1"
@@ -179,80 +183,67 @@ tests/schema/extraenvvars-valid:
 # Test aspnetcore.selectorLabels helper with default values
 tests/helpers/selector-labels-default: export TEST_DISPLAY_NAME="selectorLabels helper should generate correct labels with defaults"
 tests/helpers/selector-labels-default:
-	@${HELM_TEMPLATE} | \
-    grep -q "app.kubernetes.io/name: aspnetcore" && \
-    ${HELM_TEMPLATE} | \
-    grep -q "app.kubernetes.io/instance: release-name" && ${DISPLAY_RESULT}
+	@${HELM_TEMPLATE} $(call SHOULD_CONTAIN,"app.kubernetes.io/name: aspnetcore") && \
+    ${HELM_TEMPLATE} $(call SHOULD_CONTAIN,"app.kubernetes.io/instance: release-name") && ${DISPLAY_RESULT}
 
 # Test aspnetcore.selectorLabels helper with custom release name
 tests/helpers/selector-labels-custom-release: export TEST_DISPLAY_NAME="selectorLabels helper should use custom release name"
+tests/helpers/selector-labels-custom-release: export HELM_RELEASE_NAME=my-custom-release
 tests/helpers/selector-labels-custom-release:
-	@helm template my-custom-release charts/aspnetcore | \
-    grep -q "app.kubernetes.io/name: aspnetcore" && \
-    helm template my-custom-release charts/aspnetcore | \
-    grep -q "app.kubernetes.io/instance: my-custom-release" && ${DISPLAY_RESULT}
+	@${HELM_TEMPLATE} $(call SHOULD_CONTAIN,"app.kubernetes.io/name: aspnetcore") && \
+    ${HELM_TEMPLATE} $(call SHOULD_CONTAIN,"app.kubernetes.io/instance: my-custom-release") && ${DISPLAY_RESULT}
 
 # Test aspnetcore.standardLabels helper includes selector labels
 tests/helpers/standard-labels-includes-selector: export TEST_DISPLAY_NAME="standardLabels helper should include selector labels"
 tests/helpers/standard-labels-includes-selector:
-	@${HELM_TEMPLATE} | \
-    grep -q "app.kubernetes.io/name: aspnetcore" && \
-    ${HELM_TEMPLATE} | \
-    grep -q "app.kubernetes.io/instance: release-name" && ${DISPLAY_RESULT}
+	@${HELM_TEMPLATE} $(call SHOULD_CONTAIN,"app.kubernetes.io/name: aspnetcore") && \
+    ${HELM_TEMPLATE} $(call SHOULD_CONTAIN,"app.kubernetes.io/instance: release-name") && \
+    ${DISPLAY_RESULT}
 
 # Test aspnetcore.standardLabels helper includes helm chart label
 tests/helpers/standard-labels-chart: export TEST_DISPLAY_NAME="standardLabels helper should include helm chart label"
 tests/helpers/standard-labels-chart:
-	@${HELM_TEMPLATE} | \
-    grep -q "helm.sh/chart: aspnetcore-" && ${DISPLAY_RESULT}
+	@${HELM_TEMPLATE} $(call SHOULD_CONTAIN,"helm.sh/chart: aspnetcore-") && ${DISPLAY_RESULT}
 
 # Test aspnetcore.standardLabels helper includes version from image.tag
 tests/helpers/standard-labels-version: export TEST_DISPLAY_NAME="standardLabels helper should include version from image.tag"
 tests/helpers/standard-labels-version:
-	@${HELM_TEMPLATE} --set image.tag="v1.2.3" | \
-    grep -q 'app.kubernetes.io/version: "v1.2.3"' && ${DISPLAY_RESULT}
+	@${HELM_TEMPLATE} --set image.tag="v1.2.3" $(call SHOULD_CONTAIN,'app.kubernetes.io/version: "v1.2.3"') && ${DISPLAY_RESULT}
 
 # Test aspnetcore.standardLabels helper includes managed-by label
 tests/helpers/standard-labels-managed-by: export TEST_DISPLAY_NAME="standardLabels helper should include managed-by label"
 tests/helpers/standard-labels-managed-by:
-	@${HELM_TEMPLATE} | \
-    grep -q "app.kubernetes.io/managed-by: Helm" && ${DISPLAY_RESULT}
+	@${HELM_TEMPLATE} $(call SHOULD_CONTAIN,"app.kubernetes.io/managed-by: Helm") && ${DISPLAY_RESULT}
 
 # Test aspnetcore.standardLabels helper chart label format is correct
 tests/helpers/standard-labels-chart-format: export TEST_DISPLAY_NAME="standardLabels helper should format chart label correctly"
 tests/helpers/standard-labels-chart-format:
-	@${HELM_TEMPLATE} | \
-    grep -q "helm.sh/chart: aspnetcore-[0-9]" && ${DISPLAY_RESULT}
+	@${HELM_TEMPLATE} $(call SHOULD_CONTAIN,"helm.sh/chart: aspnetcore-[0-9]") && ${DISPLAY_RESULT}
 
 # Test aspnetcore.serviceAccountName with serviceAccount.create=true and default name
 tests/helpers/service-account-name-create-default: export TEST_DISPLAY_NAME="serviceAccountName helper should generate default name when create=true"
 tests/helpers/service-account-name-create-default:
-	@${HELM_TEMPLATE} --set serviceAccount.create=true | \
-    grep -q "serviceAccountName: release-name-serviceaccount" && ${DISPLAY_RESULT}
+	@${HELM_TEMPLATE} --set serviceAccount.create=true $(call SHOULD_CONTAIN,"serviceAccountName: release-name-serviceaccount") && ${DISPLAY_RESULT}
 
 # Test aspnetcore.serviceAccountName with serviceAccount.create=true and custom name
 tests/helpers/service-account-name-create-custom: export TEST_DISPLAY_NAME="serviceAccountName helper should use custom name when provided"
 tests/helpers/service-account-name-create-custom:
-	@${HELM_TEMPLATE} --set serviceAccount.create=true --set serviceAccount.name="my-custom-sa" | \
-    grep -q "serviceAccountName: my-custom-sa" && ${DISPLAY_RESULT}
+	@${HELM_TEMPLATE} --set serviceAccount.create=true --set serviceAccount.name="my-custom-sa" $(call SHOULD_CONTAIN,"serviceAccountName: my-custom-sa") && ${DISPLAY_RESULT}
 
 # Test aspnetcore.serviceAccountName with serviceAccount.create=false and default
 tests/helpers/service-account-name-no-create-default: export TEST_DISPLAY_NAME="serviceAccountName helper should use 'default' when create=false and no name"
 tests/helpers/service-account-name-no-create-default:
-	@${HELM_TEMPLATE} --set serviceAccount.create=false | \
-    grep -q "serviceAccountName: default" && ${DISPLAY_RESULT}
+	@${HELM_TEMPLATE} --set serviceAccount.create=false $(call SHOULD_CONTAIN,"serviceAccountName: default") && ${DISPLAY_RESULT}
 
 # Test aspnetcore.serviceAccountName with serviceAccount.create=false and custom name
 tests/helpers/service-account-name-no-create-custom: export TEST_DISPLAY_NAME="serviceAccountName helper should use custom name when create=false but name provided"
 tests/helpers/service-account-name-no-create-custom:
-	@${HELM_TEMPLATE} --set serviceAccount.create=false --set serviceAccount.name="existing-sa" | \
-    grep -q "serviceAccountName: existing-sa" && ${DISPLAY_RESULT}
+	@${HELM_TEMPLATE} --set serviceAccount.create=false --set serviceAccount.name="existing-sa" $(call SHOULD_CONTAIN,"serviceAccountName: existing-sa") && ${DISPLAY_RESULT}
 
 # Test aspnetcore.serviceAccountName with different release names
 tests/helpers/service-account-name-custom-release: export TEST_DISPLAY_NAME="serviceAccountName helper should use custom release name in generated name"
 tests/helpers/service-account-name-custom-release:
-	@helm template my-app charts/aspnetcore --set serviceAccount.create=true | \
-    grep -q "serviceAccountName: my-app-serviceaccount" && ${DISPLAY_RESULT}
+	@helm template my-app charts/aspnetcore --set serviceAccount.create=true $(call SHOULD_CONTAIN,"serviceAccountName: my-app-serviceaccount") && ${DISPLAY_RESULT}
 
 # Test edge case: very long release name gets properly truncated in chart label
 tests/helpers/standard-labels-long-name-truncation: export TEST_DISPLAY_NAME="standardLabels helper should handle long names and truncate properly"
@@ -264,8 +255,8 @@ tests/helpers/standard-labels-long-name-truncation:
 # Test that selectorLabels are used in both deployment and service
 tests/helpers/selector-labels-consistency: export TEST_DISPLAY_NAME="selectorLabels should be used consistently in deployment and service"
 tests/helpers/selector-labels-consistency:
-	@${HELM_TEMPLATE} | grep -q "app.kubernetes.io/name: aspnetcore" && \
-    ${HELM_TEMPLATE} | grep -q "app.kubernetes.io/instance: release-name" && \
+	@${HELM_TEMPLATE} $(call SHOULD_CONTAIN,"app.kubernetes.io/name: aspnetcore") && \
+    ${HELM_TEMPLATE} $(call SHOULD_CONTAIN,"app.kubernetes.io/instance: release-name") && \
     [ $$(${HELM_TEMPLATE} | grep -c "app.kubernetes.io/name: aspnetcore") -ge 2 ] && \
     [ $$(${HELM_TEMPLATE} | grep -c "app.kubernetes.io/instance: release-name") -ge 2 ] && ${DISPLAY_RESULT}
 
