@@ -81,8 +81,8 @@ tests/prechecks/autoscaling-disabled-valid:
 	@${HELM_TEMPLATE} --set autoscaling.enabled=false --set replicaCount=1 ${SHOULD_SUCCEED_AND_THEN} ${DISPLAY_RESULT}
 
 # Test autoscaling disabled with replicaCount set to 1 and PDB MinAvailable set to default (should pass without prechecks)
-tests/prechecks/autoscaling-disabled-single-replica-zero-minavailabe-valid: export TEST_DISPLAY_NAME="Autoscaling disabled configuration with single replica should be accepted even with default PDB MinAvailable since PDB should will not be created"
-tests/prechecks/autoscaling-disabled-single-replica-zero-minavailabe-valid:
+tests/prechecks/autoscaling-disabled-single-replica-zero-minavailable-valid: export TEST_DISPLAY_NAME="Autoscaling disabled configuration with single replica should be accepted even with default PDB MinAvailable since PDB will not be created"
+tests/prechecks/autoscaling-disabled-single-replica-zero-minavailable-valid:
 	@${HELM_TEMPLATE} --set autoscaling.enabled=false --set replicaCount=1 ${SHOULD_SUCCEED_AND_THEN} ${DISPLAY_RESULT}
 
 # Test autoscaling with minReplicas set to 0 (edge case)
