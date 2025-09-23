@@ -1,0 +1,201 @@
+suite: helpers template tests
+templates:
+  - deployment.yaml  # Using deployment as a vehicle to test helper functions
+tests:
+  # =============================================================================
+  # aspnetcore.selectorLabels Tests
+  # =============================================================================
+  - it: should generate correct selector labels with default values
+    asserts:
+      - equal:
+          path: spec.selector.matchLabels["app.kubernetes.io/name"]
+          value: "aspnetcore"
+      - equal:
+          path: spec.selector.matchLabels["app.kubernetes.io/instance"]
+          value: "RELEASE-NAME"
+
+  - it: should generate correct selector labels with custom release name
+    release:
+      name: "my-custom-app"
+    asserts:
+      - equal:
+          path: spec.selector.matchLabels["app.kubernetes.io/name"]
+          value: "aspnetcore"
+      - equal:
+          path: spec.selector.matchLabels["app.kubernetes.io/instance"]
+          value: "my-custom-app"
+
+  - it: should generate consistent selector labels in deployment and pod template
+    asserts:
+      # Check deployment selector
+      - equal:
+          path: spec.selector.matchLabels["app.kubernetes.io/name"]
+          value: "aspnetcore"
+      - equal:
+          path: spec.selector.matchLabels["app.kubernetes.io/instance"]
+          value: "RELEASE-NAME"
+      # Check pod template labels include selector labels
+      - equal:
+          path: spec.template.metadata.labels["app.kubernetes.io/name"]
+          value: "aspnetcore"
+      - equal:
+          path: spec.template.metadata.labels["app.kubernetes.io/instance"]
+          value: "RELEASE-NAME"
+
+  # =============================================================================
+  # aspnetcore.standardLabels Tests
+  # =============================================================================
+  - it: should generate correct standard labels with default chart version
+    asserts:
+      # Chart label should include version and handle special characters
+      - equal:
+          path: metadata.labels["helm.sh/chart"]
+          value: "aspnetcore-3.2.1"
+      # Should include selector labels
+      - equal:
+          path: metadata.labels["app.kubernetes.io/name"]
+          value: "aspnetcore"
+      - equal:
+          path: metadata.labels["app.kubernetes.io/instance"]
+          value: "RELEASE-NAME"
+      # Should include version from image tag
+      - equal:
+          path: metadata.labels["app.kubernetes.io/version"]
+          value: "aspnetapp"
+      # Should include managed-by
+      - equal:
+          path: metadata.labels["app.kubernetes.io/managed-by"]
+          value: "Helm"
+
+  - it: should generate correct standard labels with custom image tag
+    set:
+      image:
+        tag: "v1.2.3-beta"
+    asserts:
+      - equal:
+          path: metadata.labels["app.kubernetes.io/version"]
+          value: "v1.2.3-beta"
+      - equal:
+          path: metadata.labels["helm.sh/chart"]
+          value: "aspnetcore-3.2.1"
+
+  - it: should handle chart version with plus signs in helm.sh/chart label
+    chart:
+      version: "1.0.0+build123"
+    asserts:
+      # Plus signs should be replaced with underscores
+      - equal:
+          path: metadata.labels["helm.sh/chart"]
+          value: "aspnetcore-1.0.0_build123"
+
+  - it: should truncate long chart labels to 63 characters
+    chart:
+      name: "very-long-chart-name-that-exceeds-kubernetes-label-limits"
+      version: "1.0.0-very-long-version-string-that-makes-total-exceed-63-chars"
+    asserts:
+      # Should be truncated to 63 chars and trimSuffix "-"
+      - matchRegex:
+          path: metadata.labels["helm.sh/chart"]
+          pattern: "^.{1,63}$"
+      - notMatchRegex:
+          path: metadata.labels["helm.sh/chart"]
+          pattern: "-$"  # Should not end with dash
+
+  # =============================================================================
+  # aspnetcore.serviceAccountName Tests (tested via deployment serviceAccountName)
+  # =============================================================================
+  - it: should use default service account when serviceAccount.create is false
+    set:
+      serviceAccount:
+        create: false
+    asserts:
+      - equal:
+          path: spec.template.spec.serviceAccountName
+          value: "default"
+
+  - it: should use default service account when serviceAccount.create is false with custom name
+    set:
+      serviceAccount:
+        create: false
+        name: "my-custom-sa"
+    asserts:
+      - equal:
+          path: spec.template.spec.serviceAccountName
+          value: "my-custom-sa"
+
+  - it: should generate service account name when serviceAccount.create is true without custom name
+    set:
+      serviceAccount:
+        create: true
+    asserts:
+      - equal:
+          path: spec.template.spec.serviceAccountName
+          value: "RELEASE-NAME-serviceaccount"
+
+  - it: should use custom service account name when serviceAccount.create is true with custom name
+    set:
+      serviceAccount:
+        create: true
+        name: "my-custom-serviceaccount"
+    asserts:
+      - equal:
+          path: spec.template.spec.serviceAccountName
+          value: "my-custom-serviceaccount"
+
+  - it: should generate service account name with custom release name
+    release:
+      name: "my-app"
+    set:
+      serviceAccount:
+        create: true
+    asserts:
+      - equal:
+          path: spec.template.spec.serviceAccountName
+          value: "my-app-serviceaccount"
+
+  # =============================================================================
+  # Edge Cases and Integration Tests
+  # =============================================================================
+  - it: should handle empty or whitespace values gracefully
+    set:
+      image:
+        tag: ""
+    asserts:
+      - equal:
+          path: metadata.labels["app.kubernetes.io/version"]
+          value: ""
+
+  - it: should maintain label consistency across migration selector override
+    set:
+      migration:
+        existingSelectors:
+          enabled: true
+          selectors:
+            app: "legacy-app"
+            version: "v1"
+    asserts:
+      # Standard labels should still be applied to metadata
+      - equal:
+          path: metadata.labels["app.kubernetes.io/name"]
+          value: "aspnetcore"
+      - equal:
+          path: metadata.labels["app.kubernetes.io/instance"]
+          value: "RELEASE-NAME"
+      # But selector should use migration values
+      - equal:
+          path: spec.selector.matchLabels.app
+          value: "legacy-app"
+      - equal:
+          path: spec.selector.matchLabels.version
+          value: "v1"
+
+  - it: should generate consistent labels with special characters in release name
+    release:
+      name: "my-app-2024-v1.0"
+    asserts:
+      - equal:
+          path: metadata.labels["app.kubernetes.io/instance"]
+          value: "my-app-2024-v1.0"
+      - equal:
+          path: spec.selector.matchLabels["app.kubernetes.io/instance"]
+          value: "my-app-2024-v1.0"

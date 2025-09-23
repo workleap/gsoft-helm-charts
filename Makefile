@@ -201,15 +201,6 @@ tests/schema/extraenvvars-valid: export TEST_DISPLAY_NAME="Valid extraEnvVars sh
 tests/schema/extraenvvars-valid:
 	@${HELM_TEMPLATE} --set-json 'extraEnvVars=[{"name":"TEST_VAR","value":"test"}]' ${SHOULD_SUCCEED_AND_THEN} ${DISPLAY_RESULT}
 
-
-# Test that selectorLabels are used in both deployment and service
-tests/helpers/selector-labels-consistency: export TEST_DISPLAY_NAME="selectorLabels should be used consistently in deployment and service"
-tests/helpers/selector-labels-consistency:
-	@${HELM_TEMPLATE} $(call SHOULD_CONTAIN,"app.kubernetes.io/name: aspnetcore") && \
-    ${HELM_TEMPLATE} $(call SHOULD_CONTAIN,"app.kubernetes.io/instance: release-name") && \
-    [ $$(${HELM_TEMPLATE} | grep -c "app.kubernetes.io/name: aspnetcore") -ge 2 ] && \
-    [ $$(${HELM_TEMPLATE} | grep -c "app.kubernetes.io/instance: release-name") -ge 2 ] && ${DISPLAY_RESULT}
-
 # Run all tests
 test: tests
 tests: $(ALL_TEST_TARGETS)
