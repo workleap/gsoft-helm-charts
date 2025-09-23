@@ -119,7 +119,7 @@
         "additionalPaths": {
           "type": "array",
           "items": {
-            "type": "object"
+            "type": "string"
           },
           "description": "Additional paths pointing to the same service for the ingress record"
         },

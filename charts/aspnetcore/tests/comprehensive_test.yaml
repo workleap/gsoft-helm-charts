@@ -5,6 +5,8 @@ templates:
   - service.yaml
   - ingress.yaml
   - deployment-hpa.yaml
+  - serviceaccount.yaml
+  - podidentity.yaml
   - prechecks.yaml
 tests:
   # =============================================================================
@@ -140,3 +142,640 @@ tests:
           count: 1
       - isKind:
           of: Deployment
+
+  # =============================================================================
+  # Ingress Tests
+  # =============================================================================
+  - it: should not create ingress when ingress.create is false
+    template: ingress.yaml
+    set:
+      ingress:
+        create: false
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: should create ingress when ingress.create is true
+    template: ingress.yaml
+    set:
+      ingress:
+        create: true
+        hostname: "example.com"
+        className: "nginx"
+        path: "/"
+        pathType: "Prefix"
+    asserts:
+      - hasDocuments:
+          count: 1
+      - isKind:
+          of: Ingress
+      - equal:
+          path: metadata.name
+          value: RELEASE-NAME-ingress
+      - equal:
+          path: spec.ingressClassName
+          value: "nginx"
+      - equal:
+          path: spec.rules[0].host
+          value: "example.com"
+
+  - it: should include TLS when ingress.tls.enabled is true
+    template: ingress.yaml
+    set:
+      ingress:
+        create: true
+        hostname: "example.com"
+        className: "nginx"
+        tls:
+          enabled: true
+          secretName: "example-tls"
+    asserts:
+      - hasDocuments:
+          count: 1
+      - isKind:
+          of: Ingress
+      - equal:
+          path: spec.tls[0].hosts[0]
+          value: "example.com"
+      - equal:
+          path: spec.tls[0].secretName
+          value: "example-tls"
+
+  - it: should not include TLS when ingress.tls.enabled is false
+    template: ingress.yaml
+    set:
+      ingress:
+        create: true
+        hostname: "example.com"
+        className: "nginx"
+        tls:
+          enabled: false
+    asserts:
+      - hasDocuments:
+          count: 1
+      - isKind:
+          of: Ingress
+      - isNull:
+          path: spec.tls
+
+  - it: should apply commonLabels and commonAnnotations to ingress
+    template: ingress.yaml
+    set:
+      ingress:
+        create: true
+        hostname: "example.com"
+        className: "nginx"
+      commonLabels:
+        environment: "production"
+      commonAnnotations:
+        owner: "team-a"
+    asserts:
+      - hasDocuments:
+          count: 1
+      - equal:
+          path: metadata.labels.environment
+          value: "production"
+      - equal:
+          path: metadata.annotations.owner
+          value: "team-a"
+
+  - it: should include additional paths when specified
+    template: ingress.yaml
+    set:
+      ingress:
+        create: true
+        hostname: "example.com"
+        className: "nginx"
+        path: "/"
+        pathType: "Prefix"
+        additionalPaths:
+          - "/api"
+          - "/health"
+    asserts:
+      - hasDocuments:
+          count: 1
+      - isKind:
+          of: Ingress
+      - equal:
+          path: spec.rules[0].http.paths[0].path
+          value: "/"
+      - equal:
+          path: spec.rules[0].http.paths[1].path
+          value: "/api"
+      - equal:
+          path: spec.rules[0].http.paths[2].path
+          value: "/health"
+
+  # =============================================================================
+  # ServiceAccount Tests
+  # =============================================================================
+  - it: should not create serviceaccount when serviceAccount.create is false
+    template: serviceaccount.yaml
+    set:
+      serviceAccount:
+        create: false
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: should create serviceaccount when serviceAccount.create is true
+    template: serviceaccount.yaml
+    set:
+      serviceAccount:
+        create: true
+    asserts:
+      - hasDocuments:
+          count: 1
+      - isKind:
+          of: ServiceAccount
+
+  - it: should add azure workload identity labels when enabled
+    template: serviceaccount.yaml
+    set:
+      serviceAccount:
+        create: true
+      azureWorkloadIdentity:
+        enabled: true
+    asserts:
+      - hasDocuments:
+          count: 1
+      - equal:
+          path: metadata.labels["azure.workload.identity/use"]
+          value: "true"
+
+  - it: should add azure workload identity client-id annotation when provided
+    template: serviceaccount.yaml
+    set:
+      serviceAccount:
+        create: true
+      azureWorkloadIdentity:
+        enabled: true
+        clientId: "12345678-1234-1234-1234-123456789012"
+    asserts:
+      - hasDocuments:
+          count: 1
+      - equal:
+          path: metadata.annotations["azure.workload.identity/client-id"]
+          value: "12345678-1234-1234-1234-123456789012"
+
+  - it: should not add azure workload identity client-id annotation when not provided
+    template: serviceaccount.yaml
+    set:
+      serviceAccount:
+        create: true
+      azureWorkloadIdentity:
+        enabled: true
+    asserts:
+      - hasDocuments:
+          count: 1
+      - isNull:
+          path: metadata.annotations["azure.workload.identity/client-id"]
+
+  - it: should apply commonLabels and commonAnnotations to serviceaccount
+    template: serviceaccount.yaml
+    set:
+      serviceAccount:
+        create: true
+      commonLabels:
+        environment: "production"
+      commonAnnotations:
+        owner: "team-a"
+    asserts:
+      - hasDocuments:
+          count: 1
+      - equal:
+          path: metadata.labels.environment
+          value: "production"
+      - equal:
+          path: metadata.annotations.owner
+          value: "team-a"
+
+  # =============================================================================
+  # PodIdentity Tests
+  # =============================================================================
+  - it: should not create podidentity when aadPodIdentityBinding.create is false
+    template: podidentity.yaml
+    set:
+      aadPodIdentityBinding:
+        create: false
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: should create podidentity when aadPodIdentityBinding.create is true
+    template: podidentity.yaml
+    set:
+      aadPodIdentityBinding:
+        create: true
+        identityName: "test-identity"
+    asserts:
+      - hasDocuments:
+          count: 1
+      - isKind:
+          of: AzureIdentityBinding
+      - equal:
+          path: metadata.name
+          value: RELEASE-NAME-aadPodIdentityBinding
+      - equal:
+          path: spec.azureIdentity
+          value: "test-identity"
+      - equal:
+          path: spec.selector
+          value: "test-identity"
+
+  - it: should apply commonLabels and commonAnnotations to podidentity
+    template: podidentity.yaml
+    set:
+      aadPodIdentityBinding:
+        create: true
+        identityName: "test-identity"
+      commonLabels:
+        environment: "production"
+      commonAnnotations:
+        owner: "team-a"
+    asserts:
+      - hasDocuments:
+          count: 1
+      - equal:
+          path: metadata.labels.environment
+          value: "production"
+      - equal:
+          path: metadata.annotations.owner
+          value: "team-a"
+
+  # =============================================================================
+  # Deployment Advanced Tests
+  # =============================================================================
+  - it: should use migration existing selectors when enabled
+    template: deployment.yaml
+    set:
+      migration:
+        existingSelectors:
+          enabled: true
+          selectors:
+            old-app: "legacy"
+            version: "v1"
+    asserts:
+      - hasDocuments:
+          count: 1
+      - equal:
+          path: spec.selector.matchLabels
+          value:
+            old-app: "legacy"
+            version: "v1"
+      - equal:
+          path: spec.template.metadata.labels
+          value:
+            old-app: "legacy"
+            version: "v1"
+
+  - it: should apply commonLabels to deployment
+    template: deployment.yaml
+    set:
+      commonLabels:
+        environment: "production"
+        team: "platform"
+    asserts:
+      - hasDocuments:
+          count: 1
+      - equal:
+          path: metadata.labels.environment
+          value: "production"
+      - equal:
+          path: metadata.labels.team
+          value: "platform"
+
+  - it: should apply commonAnnotations to deployment
+    template: deployment.yaml
+    set:
+      commonAnnotations:
+        owner: "team-a"
+        version: "1.0.0"
+    asserts:
+      - hasDocuments:
+          count: 1
+      - equal:
+          path: metadata.annotations.owner
+          value: "team-a"
+      - equal:
+          path: metadata.annotations.version
+          value: "1.0.0"
+
+  - it: should apply podLabels to pod template
+    template: deployment.yaml
+    set:
+      podLabels:
+        tier: "backend"
+        component: "api"
+    asserts:
+      - hasDocuments:
+          count: 1
+      - equal:
+          path: spec.template.metadata.labels.tier
+          value: "backend"
+      - equal:
+          path: spec.template.metadata.labels.component
+          value: "api"
+
+  - it: should set automountServiceAccountToken to true when aadPodIdentityBinding is enabled
+    template: deployment.yaml
+    set:
+      aadPodIdentityBinding:
+        create: true
+        identityName: "test-identity"
+    asserts:
+      - hasDocuments:
+          count: 1
+      - equal:
+          path: spec.template.spec.automountServiceAccountToken
+          value: true
+      - equal:
+          path: spec.template.metadata.labels.aadpodidbinding
+          value: "test-identity"
+
+  - it: should set automountServiceAccountToken to false when aadPodIdentityBinding is disabled
+    template: deployment.yaml
+    set:
+      aadPodIdentityBinding:
+        create: false
+    asserts:
+      - hasDocuments:
+          count: 1
+      - equal:
+          path: spec.template.spec.automountServiceAccountToken
+          value: false
+
+  - it: should add azure workload identity label when enabled
+    template: deployment.yaml
+    set:
+      azureWorkloadIdentity:
+        enabled: true
+    asserts:
+      - hasDocuments:
+          count: 1
+      - equal:
+          path: spec.template.metadata.labels["azure.workload.identity/use"]
+          value: "true"
+
+  - it: should apply securityContext when enabled
+    template: deployment.yaml
+    set:
+      securityContext:
+        enabled: true
+        sysctls:
+          - name: "net.core.somaxconn"
+            value: "65535"
+    asserts:
+      - hasDocuments:
+          count: 1
+      - equal:
+          path: spec.template.spec.securityContext.sysctls[0].name
+          value: "net.core.somaxconn"
+      - equal:
+          path: spec.template.spec.securityContext.sysctls[0].value
+          value: "65535"
+
+  - it: should not apply securityContext when disabled
+    template: deployment.yaml
+    set:
+      securityContext:
+        enabled: false
+    asserts:
+      - hasDocuments:
+          count: 1
+      - isNull:
+          path: spec.template.spec.securityContext
+
+  - it: should use custom topologySpreadConstraints when provided
+    template: deployment.yaml
+    set:
+      topologySpreadConstraints:
+        - maxSkew: 2
+          topologyKey: "zone"
+          whenUnsatisfiable: "DoNotSchedule"
+    asserts:
+      - hasDocuments:
+          count: 1
+      - equal:
+          path: spec.template.spec.topologySpreadConstraints[0].maxSkew
+          value: 2
+      - equal:
+          path: spec.template.spec.topologySpreadConstraints[0].topologyKey
+          value: "zone"
+
+  - it: should use spread across nodes preset when enabled and no custom constraints
+    template: deployment.yaml
+    set:
+      presets:
+        spreadAcrossNodes:
+          enabled: true
+    asserts:
+      - hasDocuments:
+          count: 1
+      - equal:
+          path: spec.template.spec.topologySpreadConstraints[0].maxSkew
+          value: 1
+      - equal:
+          path: spec.template.spec.topologySpreadConstraints[0].topologyKey
+          value: "kubernetes.io/hostname"
+
+  - it: should mount certificate store when enabled
+    template: deployment.yaml
+    set:
+      certificateStore:
+        enabled: true
+        configMapName: "ca-certificates"
+        fileName: "ca-bundle.crt"
+    asserts:
+      - hasDocuments:
+          count: 1
+      - equal:
+          path: spec.template.spec.containers[0].volumeMounts[0].name
+          value: "certificate-store"
+      - equal:
+          path: spec.template.spec.containers[0].volumeMounts[0].mountPath
+          value: "/etc/ssl/certs/ca-certificates.crt"
+      - equal:
+          path: spec.template.spec.volumes[0].name
+          value: "certificate-store"
+      - equal:
+          path: spec.template.spec.volumes[0].configMap.name
+          value: "ca-certificates"
+
+  - it: should include extraVolumes and extraVolumeMounts when provided
+    template: deployment.yaml
+    set:
+      extraVolumes:
+        - name: "config-volume"
+          configMap:
+            name: "app-config"
+      extraVolumeMounts:
+        - name: "config-volume"
+          mountPath: "/app/config"
+    asserts:
+      - hasDocuments:
+          count: 1
+      - equal:
+          path: spec.template.spec.volumes[0].name
+          value: "config-volume"
+      - equal:
+          path: spec.template.spec.containers[0].volumeMounts[0].name
+          value: "config-volume"
+
+  - it: should include lifecycle configuration when provided
+    template: deployment.yaml
+    set:
+      lifecycle: |
+        preStop:
+          exec:
+            command: ["/bin/sh", "-c", "sleep 15"]
+    asserts:
+      - hasDocuments:
+          count: 1
+      - equal:
+          path: spec.template.spec.containers[0].lifecycle.preStop.exec.command
+          value: ["/bin/sh", "-c", "sleep 15"]
+
+  - it: should include readinessProbe when provided
+    template: deployment.yaml
+    set:
+      readinessProbe:
+        httpGet:
+          path: "/health"
+          port: 8080
+        initialDelaySeconds: 10
+    asserts:
+      - hasDocuments:
+          count: 1
+      - equal:
+          path: spec.template.spec.containers[0].readinessProbe.httpGet.path
+          value: "/health"
+      - equal:
+          path: spec.template.spec.containers[0].readinessProbe.initialDelaySeconds
+          value: 10
+
+  - it: should include livenessProbe when provided
+    template: deployment.yaml
+    set:
+      livenessProbe:
+        httpGet:
+          path: "/health"
+          port: 8080
+        initialDelaySeconds: 30
+    asserts:
+      - hasDocuments:
+          count: 1
+      - equal:
+          path: spec.template.spec.containers[0].livenessProbe.httpGet.path
+          value: "/health"
+      - equal:
+          path: spec.template.spec.containers[0].livenessProbe.initialDelaySeconds
+          value: 30
+
+  - it: should include startupProbe when provided
+    template: deployment.yaml
+    set:
+      startupProbe:
+        httpGet:
+          path: "/startup"
+          port: 8080
+        failureThreshold: 10
+    asserts:
+      - hasDocuments:
+          count: 1
+      - equal:
+          path: spec.template.spec.containers[0].startupProbe.httpGet.path
+          value: "/startup"
+      - equal:
+          path: spec.template.spec.containers[0].startupProbe.failureThreshold
+          value: 10
+
+  # =============================================================================
+  # Service Advanced Tests
+  # =============================================================================
+  - it: should use migration existing selectors in service when enabled
+    template: service.yaml
+    set:
+      migration:
+        existingSelectors:
+          enabled: true
+          selectors:
+            old-app: "legacy"
+            version: "v1"
+    asserts:
+      - hasDocuments:
+          count: 1
+      - equal:
+          path: spec.selector
+          value:
+            old-app: "legacy"
+            version: "v1"
+
+  - it: should apply commonLabels and commonAnnotations to service
+    template: service.yaml
+    set:
+      commonLabels:
+        environment: "production"
+      commonAnnotations:
+        owner: "team-a"
+    asserts:
+      - hasDocuments:
+          count: 1
+      - equal:
+          path: metadata.labels.environment
+          value: "production"
+      - equal:
+          path: metadata.annotations.owner
+          value: "team-a"
+
+  - it: should apply service specific annotations
+    template: service.yaml
+    set:
+      service:
+        annotations:
+          service.beta.kubernetes.io/aws-load-balancer-type: "nlb"
+    asserts:
+      - hasDocuments:
+          count: 1
+      - equal:
+          path: metadata.annotations["service.beta.kubernetes.io/aws-load-balancer-type"]
+          value: "nlb"
+
+  # =============================================================================
+  # HPA Advanced Tests
+  # =============================================================================
+  - it: should apply commonLabels and commonAnnotations to HPA
+    template: deployment-hpa.yaml
+    set:
+      autoscaling:
+        enabled: true
+        minReplicas: 2
+        maxReplicas: 10
+      commonLabels:
+        environment: "production"
+      commonAnnotations:
+        owner: "team-a"
+    asserts:
+      - hasDocuments:
+          count: 1
+      - equal:
+          path: metadata.labels.environment
+          value: "production"
+      - equal:
+          path: metadata.annotations.owner
+          value: "team-a"
+
+  - it: should set correct targetCPUUtilizationPercentage in HPA
+    template: deployment-hpa.yaml
+    set:
+      autoscaling:
+        enabled: true
+        minReplicas: 2
+        maxReplicas: 10
+        targetCPUUtilizationPercentage: 75
+    asserts:
+      - hasDocuments:
+          count: 1
+      - equal:
+          path: spec.metrics[0].resource.target.averageUtilization
+          value: 75
