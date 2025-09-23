@@ -31,10 +31,16 @@ tests/prechecks/autoscaling-minreplicas-required:
 	@${HELM_TEMPLATE} --set autoscaling.enabled=true --set autoscaling.minReplicas=null ${SHOULD_FAIL_WITH_ERROR_AND_THEN} ${DISPLAY_RESULT}
 
 # Test autoscaling with minReplicas exactly equal to minAvailable (edge case - should fail)
-tests/prechecks/autoscaling-minreplicas-equal-minavailable: export TEST_DISPLAY_NAME="Validation should prevent minReplicas == minAvailable"
+tests/prechecks/autoscaling-minreplicas-equal-minavailable: export TEST_DISPLAY_NAME="Validation should prevent minReplicas equal to minAvailable"
 tests/prechecks/autoscaling-minreplicas-equal-minavailable: export EXPECTED_ERROR_MESSAGE="autoscaling.minReplicas cannot be less than podDisruptionBudget.minAvailable"
 tests/prechecks/autoscaling-minreplicas-equal-minavailable:
 	@${HELM_TEMPLATE} --set autoscaling.enabled=true --set autoscaling.minReplicas=2 --set podDisruptionBudget.minAvailable=2 ${SHOULD_FAIL_WITH_ERROR_AND_THEN} ${DISPLAY_RESULT}
+
+# Test autoscaling with minReplicas less than minAvailable (edge case - should fail)
+tests/prechecks/autoscaling-minreplicas-less-than-minavailable: export TEST_DISPLAY_NAME="Validation should prevent minReplicas less than minAvailable"
+tests/prechecks/autoscaling-minreplicas-less-than-minavailable: export EXPECTED_ERROR_MESSAGE="autoscaling.minReplicas cannot be less than podDisruptionBudget.minAvailable"
+tests/prechecks/autoscaling-minreplicas-less-than-minavailable:
+	@${HELM_TEMPLATE} --set autoscaling.enabled=true --set autoscaling.minReplicas=2 --set podDisruptionBudget.minAvailable=3 ${SHOULD_FAIL_WITH_ERROR_AND_THEN} ${DISPLAY_RESULT}
 
 # Test valid configuration: autoscaling with proper minReplicas
 tests/prechecks/autoscaling-valid: export TEST_DISPLAY_NAME="Valid autoscaling configuration should be accepted"
