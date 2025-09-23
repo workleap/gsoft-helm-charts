@@ -30,17 +30,30 @@ tests/prechecks/autoscaling-minreplicas-required: export EXPECTED_ERROR_MESSAGE=
 tests/prechecks/autoscaling-minreplicas-required:
 	@${HELM_TEMPLATE} --set autoscaling.enabled=true --set autoscaling.minReplicas=null ${SHOULD_FAIL_WITH_ERROR_AND_THEN} ${DISPLAY_RESULT}
 
-# Test autoscaling with minReplicas exactly equal to minAvailable (edge case - should fail)
+# Test autoscaling with minReplicas exactly equal to minAvailable
 tests/prechecks/autoscaling-minreplicas-equal-minavailable: export TEST_DISPLAY_NAME="Validation should prevent minReplicas equal to minAvailable"
 tests/prechecks/autoscaling-minreplicas-equal-minavailable: export EXPECTED_ERROR_MESSAGE="autoscaling.minReplicas cannot be less than podDisruptionBudget.minAvailable"
 tests/prechecks/autoscaling-minreplicas-equal-minavailable:
 	@${HELM_TEMPLATE} --set autoscaling.enabled=true --set autoscaling.minReplicas=2 --set podDisruptionBudget.minAvailable=2 ${SHOULD_FAIL_WITH_ERROR_AND_THEN} ${DISPLAY_RESULT}
 
-# Test autoscaling with minReplicas less than minAvailable (edge case - should fail)
+# Test autoscaling with minReplicas less than minAvailable
 tests/prechecks/autoscaling-minreplicas-less-than-minavailable: export TEST_DISPLAY_NAME="Validation should prevent minReplicas less than minAvailable"
 tests/prechecks/autoscaling-minreplicas-less-than-minavailable: export EXPECTED_ERROR_MESSAGE="autoscaling.minReplicas cannot be less than podDisruptionBudget.minAvailable"
 tests/prechecks/autoscaling-minreplicas-less-than-minavailable:
 	@${HELM_TEMPLATE} --set autoscaling.enabled=true --set autoscaling.minReplicas=2 --set podDisruptionBudget.minAvailable=3 ${SHOULD_FAIL_WITH_ERROR_AND_THEN} ${DISPLAY_RESULT}
+
+# Test replicaCount with minReplicas exactly equal to minAvailable
+tests/prechecks/replicaCount-minreplicas-equal-minavailable: export TEST_DISPLAY_NAME="Validation should prevent replicaCount equal to minAvailable"
+tests/prechecks/replicaCount-minreplicas-equal-minavailable: export EXPECTED_ERROR_MESSAGE="replicaCount cannot be less or equal to podDisruptionBudget.minAvailable"
+tests/prechecks/replicaCount-minreplicas-equal-minavailable:
+	@${HELM_TEMPLATE} --set autoscaling.enabled=false --set replicaCount=2 --set podDisruptionBudget.minAvailable=2 ${SHOULD_FAIL_WITH_ERROR_AND_THEN} ${DISPLAY_RESULT}
+
+
+# Test replicaCount with minReplicas less than minAvailable
+tests/prechecks/replicaCount-minreplicas-less-than-minavailable: export TEST_DISPLAY_NAME="Validation should prevent minReplicas less than minAvailable"
+tests/prechecks/replicaCount-minreplicas-less-than-minavailable: export EXPECTED_ERROR_MESSAGE="replicaCount cannot be less or equal to podDisruptionBudget.minAvailable"
+tests/prechecks/replicaCount-minreplicas-less-than-minavailable:
+	@${HELM_TEMPLATE} --set autoscaling.enabled=false --set replicaCount=2 --set podDisruptionBudget.minAvailable=3 ${SHOULD_FAIL_WITH_ERROR_AND_THEN} ${DISPLAY_RESULT}
 
 # Test valid configuration: autoscaling with proper minReplicas
 tests/prechecks/autoscaling-valid: export TEST_DISPLAY_NAME="Valid autoscaling configuration should be accepted"
@@ -60,6 +73,11 @@ tests/prechecks/pdb-percentage-valid:
 # Test autoscaling disabled with valid configuration (should pass without prechecks)
 tests/prechecks/autoscaling-disabled-valid: export TEST_DISPLAY_NAME="Autoscaling disabled configuration should be accepted"
 tests/prechecks/autoscaling-disabled-valid:
+	@${HELM_TEMPLATE} --set autoscaling.enabled=false --set replicaCount=1 ${SHOULD_SUCCEED_AND_THEN} ${DISPLAY_RESULT}
+
+# Test autoscaling disabled with replicaCount set to 1 and PDB MinAvailable set to default (should pass without prechecks)
+tests/prechecks/autoscaling-disabled-single-replica-zero-minavailabe-valid: export TEST_DISPLAY_NAME="Autoscaling disabled configuration with single replica should be accepted even with default PDB MinAvailable since PDB should will not be created"
+tests/prechecks/autoscaling-disabled-single-replica-zero-minavailabe-valid:
 	@${HELM_TEMPLATE} --set autoscaling.enabled=false --set replicaCount=1 ${SHOULD_SUCCEED_AND_THEN} ${DISPLAY_RESULT}
 
 # Test autoscaling with minReplicas set to 0 (edge case)
