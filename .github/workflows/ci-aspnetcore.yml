@@ -37,7 +37,7 @@ jobs:
           helm kubeconform ./charts/aspnetcore/ --values ./charts/aspnetcore/values.yaml --strict
 
       - name: Run unit tests
-        run: helm template  charts/aspnetcore --set autoscaling.enabled=true --set autoscaling.minReplicas=-1 2>&1
+        run: make tests
 
   # Inspired from https://github.com/kedacore/charts/blob/v2.9.4/.github/workflows/ci-core.yml
   deploy:
