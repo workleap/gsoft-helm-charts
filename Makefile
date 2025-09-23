@@ -23,7 +23,8 @@ endef
 
 $(HELM_UNITTEST_PLUGIN):
 	@echo "Installing helm unittest plugin..."
-	@helm plugin install $(HELM_UNITTEST_PLUGIN_GIT)
+	@helm plugin install $(HELM_UNITTEST_PLUGIN_GIT) >/dev/null
+	@echo "✅ helm unittest plugin installed."
 
 tests/helm-unittests: $(HELM_UNITTEST_PLUGIN)
 	@helm unittest charts/aspnetcore
