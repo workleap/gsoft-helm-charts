@@ -136,6 +136,11 @@
           },
           "description": "Additional annotations for the Ingress resource"
         },
+        "proxyReadTimeout": {
+          "type": "string",
+          "default": "60",
+          "description": "Sets the proxy read timeout for nginx ingress controller in seconds. Do not include the unit. (e.g., \"60\", \"300\")"
+        },
         "tls": {
           "type": "object",
           "properties": {

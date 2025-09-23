@@ -115,3 +115,34 @@ tests:
       - equal:
           path: spec.rules[0].http.paths[2].path
           value: "/health"
+
+  - it: should set default proxy read timeout annotation
+    set:
+      ingress:
+        create: true
+        hostname: "example.com"
+        className: "nginx"
+    asserts:
+      - hasDocuments:
+          count: 1
+      - isKind:
+          of: Ingress
+      - equal:
+          path: metadata.annotations["nginx.ingress.kubernetes.io/proxy-read-timeout"]
+          value: "60"
+
+  - it: should set custom proxy read timeout annotation
+    set:
+      ingress:
+        create: true
+        hostname: "example.com"
+        className: "nginx"
+        proxyReadTimeout: "300"
+    asserts:
+      - hasDocuments:
+          count: 1
+      - isKind:
+          of: Ingress
+      - equal:
+          path: metadata.annotations["nginx.ingress.kubernetes.io/proxy-read-timeout"]
+          value: "300"
