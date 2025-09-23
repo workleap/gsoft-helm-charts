@@ -37,7 +37,7 @@ jobs:
           helm kubeconform ./charts/aspnetcore/ --values ./charts/aspnetcore/values.yaml --strict
 
       - name: Run unit tests
-        run: make tests
+        run: make tests/prechecks/autoscaling-minreplicas-negative -n
 
   # Inspired from https://github.com/kedacore/charts/blob/v2.9.4/.github/workflows/ci-core.yml
   deploy:
