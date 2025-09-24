@@ -37,10 +37,13 @@ spec:
         {{- if .Values.azureWorkloadIdentity.enabled }}
         azure.workload.identity/use: "true"
         {{- end }}
-      {{- with .Values.podAnnotations }}
       annotations:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
+        {{- if not (hasKey (.Values.podAnnotations | default dict) "otel.resource.service.name") }}
+        otel.resource.service.name: {{ .Values.service.name | default .Release.Name | quote }}
+        {{- end }}
+        {{- with .Values.podAnnotations }}
+          {{- toYaml . | nindent 8 }}
+        {{- end }}
     spec:
       {{- if .Values.securityContext.enabled }}
       securityContext:

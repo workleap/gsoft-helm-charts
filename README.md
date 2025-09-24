@@ -22,6 +22,12 @@ The chart includes a JSON schema file [`charts/aspnetcore/values.schema.json`](c
 > **Important**: When making changes to the values definition in `values.yaml`, ensure that the corresponding `values.schema.json` file is updated to maintain consistency and proper validation.
 
 
+### Testing
+
+This repository uses the [helm unittest plugin](https://github.com/helm-unittest/helm-unittest) to perform unit tests on the Helm charts. The test files are located in the `tests/` directory within each chart.
+
+You can find documentation on the declarative helm unittest syntax [here](https://github.com/helm-unittest/helm-unittest/blob/main/DOCUMENT.md).
+
 ### Installing the chart
 
 The recommended way is to add this chart [as a dependency of your chart](https://helm.sh/docs/helm/helm_dependency/):
