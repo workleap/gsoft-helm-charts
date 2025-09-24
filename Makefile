@@ -26,9 +26,6 @@ $(HELM_UNITTEST_PLUGIN):
 	@helm plugin install $(HELM_UNITTEST_PLUGIN_GIT) >/dev/null
 	@echo "✅ helm unittest plugin installed."
 
-template:
-	@${HELM_TEMPLATE} $(ARGS)
-
 tests/helm-unittests: $(HELM_UNITTEST_PLUGIN)
 	@helm unittest charts/aspnetcore
 
