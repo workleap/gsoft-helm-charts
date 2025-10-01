@@ -1,0 +1,26 @@
+aspnetcore:
+  environment: prod
+  extraEnvVars:
+    - name: ASPNETCORE_ENVIRONMENT
+      value: prod
+    - name: DOTNET_ENVIRONMENT
+      value: prod
+
+  image:
+    registry: "infra0dev0we0containers010acr0a1a3493a720f"
+
+  ingress:
+    hostname: "api.demo.leap.com"
+
+  replicaCount: 2
+
+  resources:
+    limits:
+      memory: "256Mi"
+    requests:
+      cpu: "100m"
+      memory: "256Mi"
+
+  azureWorkloadIdentity:
+    enabled: true
+    clientId: "f12a5f5a-ca01-4793-8b48-db160feb4583"

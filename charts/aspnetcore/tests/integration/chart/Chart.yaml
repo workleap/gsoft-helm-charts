@@ -1,0 +1,9 @@
+apiVersion: v2
+name: test-chart
+description: Test chart
+version: 1.0.0
+dependencies:
+  - name: aspnetcore
+    alias: aspnetcore
+    version: "*"
+    repository: file://../../../../aspnetcore

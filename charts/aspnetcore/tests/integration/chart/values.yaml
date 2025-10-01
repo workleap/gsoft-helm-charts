@@ -1,0 +1,63 @@
+aspnetcore:
+  image:
+    registry: "infra0dev0containers0acr072602aa76781.azurecr.io"
+    repository: "workleap-leap-shop-api"
+    tag: "1.0.78"
+    pullPolicy: IfNotPresent
+
+  ingress:
+    hostname: "api.idp.workleap-dev.com"
+    path: /leap.shop/sam-caya(/|$)(.*)
+    pathType: ImplementationSpecific
+    annotations:
+      nginx.ingress.kubernetes.io/ssl-redirect: "false"
+      nginx.ingress.kubernetes.io/use-regex: "true"
+      nginx.ingress.kubernetes.io/rewrite-target: /$2
+      nginx.ingress.kubernetes.io/x-forwarded-prefix: /leap.shop
+
+  resources:
+    limits:
+      memory: "128Mi"
+    requests:
+      cpu: "50m"
+      memory: "128Mi"
+
+  readinessProbe:
+    httpGet:
+      path: "/health"
+      port: http
+    initialDelaySeconds: 30
+    periodSeconds: 5
+    failureThreshold: 6
+
+  livenessProbe:
+    httpGet:
+      path: "/health"
+      port: http
+    initialDelaySeconds: 30
+    periodSeconds: 5
+    timeoutSeconds: 10
+    failureThreshold: 3
+
+  startupProbe:
+    httpGet:
+      path: "/startup"
+      port: http
+    initialDelaySeconds: 30
+    periodSeconds: 5
+    timeoutSeconds: 15
+    failureThreshold: 6
+
+  serviceAccount:
+    create: false
+    name: workload-identity-sam-caya
+
+  azureWorkloadIdentity:
+    enabled: true
+    clientId: "51de9fd3-d61d-4727-82c4-3e4bc0229c75"
+
+  extraEnvVars:
+    - name: AZURE_EXPERIMENTAL_ENABLE_ACTIVITY_SOURCE
+      value: "true"
+    - name: ASPNETCORE_APPLICATIONNAME
+      value: leap.shop-leap.shopapi
