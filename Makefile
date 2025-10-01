@@ -21,6 +21,12 @@ define SHOULD_CONTAIN
 2>&1 | grep -q -E $(1)
 endef
 
+INTEGRATION_TEST_CHART := charts/aspnetcore/tests/integration/chart
+INTEGRATION_TEST_CHART_LOCK_FILE := $(INTEGRATION_TEST_CHART)/Chart.lock
+
+$(INTEGRATION_TEST_CHART_LOCK_FILE):
+	@helm dependency update charts/aspnetcore/tests/integration/chart 1>/dev/null 2>&1 || (echo "❌ ERROR: Failed to update dependencies for integration test chart" && exit 1)
+
 $(HELM_UNITTEST_PLUGIN):
 	@echo "Installing helm unittest plugin..."
 	@helm plugin install $(HELM_UNITTEST_PLUGIN_GIT) >/dev/null
@@ -206,6 +212,11 @@ tests/schema/extraenvvars-missing-name:
 tests/schema/extraenvvars-valid: export TEST_DISPLAY_NAME="Valid extraEnvVars should be accepted"
 tests/schema/extraenvvars-valid:
 	@${HELM_TEMPLATE} --set-json 'extraEnvVars=[{"name":"TEST_VAR","value":"test"}]' ${SHOULD_SUCCEED_AND_THEN} ${DISPLAY_RESULT}
+
+# Test functionality: Chart can be used as a sub-chart
+tests/integration/usable-as-sub-chart: export TEST_DISPLAY_NAME="Chart can be used as a sub-chart"
+tests/integration/usable-as-sub-chart: $(INTEGRATION_TEST_CHART) $(INTEGRATION_TEST_CHART_LOCK_FILE)
+	@helm template $< ${SHOULD_SUCCEED_AND_THEN} ${DISPLAY_RESULT}
 
 # Run all tests
 test: tests
