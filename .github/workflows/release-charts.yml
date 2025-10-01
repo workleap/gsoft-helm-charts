@@ -9,14 +9,25 @@ on:
 jobs:
   release:
     permissions:
+      id-token: write
       contents: write
     runs-on: ubuntu-latest
     steps:
+      - name: Get Secrets from Azure Key Vault
+        id: get_secret
+        uses: workleap/wl-reusable-workflows/retrieve-managed-secret@main
+        with:
+          azure-client-id: ${{ vars.AZURE_CLIENT_ID }}
+          azure-tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          azure-subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+          keyvault-name: ${{ vars.IDP_SM_KEYVAULT_NAME }}
+          secret-name: "leap-helm-release"
+          
       - name: Checkout
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
         with:
           fetch-depth: 0
-          token: ${{ secrets.HELM_PAT }}
+          token: ${{ steps.get_secret.outputs.secret }}
 
       - name: Configure Git
         run: |
@@ -33,7 +44,7 @@ jobs:
         with:
           charts_dir: charts
         env:
-          CR_TOKEN: "${{ secrets.HELM_PAT }}"
+          CR_TOKEN: "${{ steps.get_secret.outputs.secret }}"
           CR_PAGES_BRANCH: "gh-pages"
           CR_PAGES_INDEX_PATH: "pages/index.yaml"
           CR_SKIP_EXISTING: "true"
