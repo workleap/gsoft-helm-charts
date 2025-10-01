@@ -22,7 +22,7 @@ define SHOULD_CONTAIN
 endef
 
 INTEGRATION_TEST_CHART := charts/aspnetcore/tests/integration/chart
-INTEGRATION_TEST_CHART_LOCK_FILE := $(INTEGRATION_TEST_CHART)Chart.lock
+INTEGRATION_TEST_CHART_LOCK_FILE := $(INTEGRATION_TEST_CHART)/Chart.lock
 
 $(INTEGRATION_TEST_CHART_LOCK_FILE):
 	@helm dependency update charts/aspnetcore/tests/integration/chart 1>/dev/null 2>&1 || (echo "❌ ERROR: Failed to update dependencies for integration test chart" && exit 1)
