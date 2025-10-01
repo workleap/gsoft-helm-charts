@@ -11,7 +11,7 @@ jobs:
     permissions:
       id-token: write
       contents: write
-    runs-on: ubuntu-latest
+    runs-on: [idp]
     steps:
       - name: Get Secrets from Azure Key Vault
         id: get_secret
