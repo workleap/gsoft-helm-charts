@@ -33,7 +33,7 @@ jobs:
         with:
           charts_dir: charts
         env:
-          CR_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
-          CR_PAGES_BRANCH: "main"
+          CR_TOKEN: "${{ secrets.HELM_PAT }}"
+          CR_PAGES_BRANCH: "gh-pages"
           CR_PAGES_INDEX_PATH: "pages/index.yaml"
           CR_SKIP_EXISTING: "true"
