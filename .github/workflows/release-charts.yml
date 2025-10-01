@@ -20,7 +20,7 @@ jobs:
           azure-client-id: ${{ vars.AZURE_CLIENT_ID }}
           azure-tenant-id: ${{ vars.AZURE_TENANT_ID }}
           azure-subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
-          keyvault-name: ${{ vars.IDP_SM_KEYVAULT_NAME }}
+          keyvault-name: ${{ vars.IDP_CICD_KEYVAULT_NAME }}
           secret-name: "leap-helm-release"
           
       - name: Checkout
