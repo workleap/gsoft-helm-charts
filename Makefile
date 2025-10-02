@@ -137,11 +137,6 @@ tests/schema/environment-valid: export TEST_DISPLAY_NAME="Schema should accept a
 tests/schema/environment-valid:
 	@${HELM_TEMPLATE} --set environment="Whatever" ${SHOULD_SUCCEED_AND_THEN} ${DISPLAY_RESULT}
 
-# Test environment valid values (should pass)
-tests/schema/environment-valid: export TEST_DISPLAY_NAME="Valid environment should be accepted"
-tests/schema/environment-valid:
-	@${HELM_TEMPLATE} --set environment="Production" ${SHOULD_SUCCEED_AND_THEN} ${DISPLAY_RESULT}
-
 # Test image.pullPolicy enum validation (should fail with invalid pullPolicy)
 tests/schema/image-pullpolicy-invalid: export TEST_DISPLAY_NAME="Schema should reject invalid pullPolicy values"
 tests/schema/image-pullpolicy-invalid: export EXPECTED_ERROR_MESSAGE="(pullPolicy.*|Must be one of)"
