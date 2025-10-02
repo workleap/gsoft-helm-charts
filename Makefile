@@ -132,16 +132,10 @@ tests/schema/termination-grace-period-negative: export EXPECTED_ERROR_MESSAGE="(
 tests/schema/termination-grace-period-negative:
 	@${HELM_TEMPLATE} --set terminationGracePeriodSeconds=-1 ${SHOULD_FAIL_WITH_ERROR_AND_THEN} ${DISPLAY_RESULT}
 
-# Test environment enum validation (should fail with invalid environment)
-tests/schema/environment-invalid: export TEST_DISPLAY_NAME="Schema should reject invalid environment values"
-tests/schema/environment-invalid: export EXPECTED_ERROR_MESSAGE="(environment.*|Must be one of the following)"
-tests/schema/environment-invalid:
-	@${HELM_TEMPLATE} --set environment="Invalid" ${SHOULD_FAIL_WITH_ERROR_AND_THEN} ${DISPLAY_RESULT}
-
-# Test environment valid values (should pass)
-tests/schema/environment-valid: export TEST_DISPLAY_NAME="Valid environment should be accepted"
+# Test environment accepts any value
+tests/schema/environment-valid: export TEST_DISPLAY_NAME="Schema should accept any environment value"
 tests/schema/environment-valid:
-	@${HELM_TEMPLATE} --set environment="Production" ${SHOULD_SUCCEED_AND_THEN} ${DISPLAY_RESULT}
+	@${HELM_TEMPLATE} --set environment="Whatever" ${SHOULD_SUCCEED_AND_THEN} ${DISPLAY_RESULT}
 
 # Test image.pullPolicy enum validation (should fail with invalid pullPolicy)
 tests/schema/image-pullpolicy-invalid: export TEST_DISPLAY_NAME="Schema should reject invalid pullPolicy values"
