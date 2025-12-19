@@ -1,8 +1,5 @@
 name: Semgrep scan
 
-permissions:
-  actions: read
-
 on:
   pull_request:
     branches: ["main"]
@@ -13,6 +10,7 @@ on:
 jobs:
   call-workflow-semgrep:
     permissions:
+      actions: read
       contents: read
       security-events: write
     uses: workleap/wl-reusable-workflows/.github/workflows/reusable-semgrep-workflow.yml@main
