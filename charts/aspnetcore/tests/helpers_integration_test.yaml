@@ -16,7 +16,7 @@ tests:
         template: service.yaml
       - equal:
           path: metadata.labels["helm.sh/chart"]
-          value: "aspnetcore-3.2.1"
+          value: "aspnetcore-3.2.2"
         template: service.yaml
       - equal:
           path: metadata.labels["app.kubernetes.io/name"]
@@ -75,7 +75,7 @@ tests:
     asserts:
       - equal:
           path: metadata.labels["helm.sh/chart"]
-          value: "aspnetcore-3.2.1"
+          value: "aspnetcore-3.2.2"
         template: serviceaccount.yaml
       - equal:
           path: metadata.labels["app.kubernetes.io/name"]
@@ -96,7 +96,7 @@ tests:
         template: ingress.yaml
       - equal:
           path: metadata.labels["helm.sh/chart"]
-          value: "aspnetcore-3.2.1"
+          value: "aspnetcore-3.2.2"
         template: ingress.yaml
       - equal:
           path: metadata.labels["app.kubernetes.io/name"]
