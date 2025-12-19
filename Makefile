@@ -29,7 +29,7 @@ $(INTEGRATION_TEST_CHART_LOCK_FILE):
 
 $(HELM_UNITTEST_PLUGIN):
 	@echo "Installing helm unittest plugin..."
-	@helm plugin install $(HELM_UNITTEST_PLUGIN_GIT) >/dev/null
+	@helm plugin install $(HELM_UNITTEST_PLUGIN_GIT) --verify=false >/dev/null
 	@echo "✅ helm unittest plugin installed."
 
 tests/helm-unittests: $(HELM_UNITTEST_PLUGIN)
