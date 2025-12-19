@@ -1,5 +1,8 @@
 name: Semgrep scan
 
+permissions:
+  actions: read
+
 on:
   pull_request:
     branches: ["main"]
