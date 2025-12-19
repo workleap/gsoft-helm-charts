@@ -50,7 +50,7 @@ tests:
       # Chart label should include version and handle special characters
       - equal:
           path: metadata.labels["helm.sh/chart"]
-          value: "aspnetcore-3.2.1"
+          value: "aspnetcore-3.2.2"
       # Should include selector labels
       - equal:
           path: metadata.labels["app.kubernetes.io/name"]
@@ -77,7 +77,7 @@ tests:
           value: "v1.2.3-beta"
       - equal:
           path: metadata.labels["helm.sh/chart"]
-          value: "aspnetcore-3.2.1"
+          value: "aspnetcore-3.2.2"
 
   - it: should handle chart version with plus signs in helm.sh/chart label
     chart:
