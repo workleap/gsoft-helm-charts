@@ -1,0 +1,70 @@
+name: Leap Deploy Generate Chart
+description: |
+  Generates a Helm chart based on the folded leap-deploy.yaml configuration.
+  Transforms the folded config into deployment parameters ready for Helm/Kubernetes deployment.
+  Uses the aspnetcore chart as subchart dependencies for each workload.
+
+inputs:
+  chart-registry:
+    description: The Helm chart repository URL for the aspnetcore chart (e.g., https://workleap.github.io/gsoft-helm-charts).
+    required: true
+  chart-name:
+    description: The name of the aspnetcore chart to use for workloads.
+    required: true
+  chart-version:
+    description: The version of the aspnetcore chart to use for workloads.
+    default: "latest"
+    required: true
+  leap-deploy-config:
+    description: The folded Leap Deploy configuration for the target environment/region
+    required: true
+  infra-config:
+    description: Infra config for the target environment
+    required: true
+  product-name:
+    description: The product name.
+    required: true
+  environment:
+    description: The environment name (e.g., dev, staging, prod)
+    required: true
+  region:
+    description: The region name (e.g., na, eu, etc.)
+    required: false
+
+outputs:
+  chart-directory:
+    description: The directory path containing the generated Helm Chart.yaml and values.yaml files
+    value: ${{ steps.generate.outputs.chart-directory }}
+
+runs:
+  using: composite
+  steps:
+    - name: Generate Helm Chart
+      id: generate
+      env:
+        LEAP_APP_CHART_REGISTRY: ${{ inputs.chart-registry }}
+        LEAP_APP_CHART_NAME: ${{ inputs.chart-name }}
+        LEAP_APP_CHART_VERSION: ${{ inputs.chart-version }}
+        PRODUCT_NAME: ${{ inputs.product-name }}
+        LEAP_DEPLOY_CONFIG: ${{ inputs.leap-deploy-config }}
+        INFRA_CONFIG: ${{ inputs.infra-config }}
+        ENVIRONMENT: ${{ inputs.environment }}
+        REGION: ${{ inputs.region }}
+        ACTION_PATH: ${{ github.action_path }}
+      shell: pwsh
+      run: |
+        $outputDir = Join-Path $env:RUNNER_TEMP "helm-output-$(New-Guid)"
+        New-Item -ItemType Directory -Force -Path $outputDir | Out-Null
+        
+        & "$env:ACTION_PATH/generate-chart.ps1" `
+          -ChartRegistry $env:LEAP_APP_CHART_REGISTRY `
+          -ChartName $env:LEAP_APP_CHART_NAME `
+          -ChartVersion $env:LEAP_APP_CHART_VERSION `
+          -ProductName $env:PRODUCT_NAME `
+          -FoldedConfigJson $env:LEAP_DEPLOY_CONFIG `
+          -InfraConfigJson $env:INFRA_CONFIG `
+          -Environment $env:ENVIRONMENT `
+          -Region $env:REGION `
+          -OutputDirectory $outputDir
+        
+        echo "chart-directory=$outputDir" >> $env:GITHUB_OUTPUT
