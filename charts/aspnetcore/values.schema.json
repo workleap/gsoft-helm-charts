@@ -87,73 +87,83 @@
       },
       "additionalProperties": false
     },
-    "ingress": {
+    "httpRoute": {
       "type": "object",
       "properties": {
         "create": {
           "type": "boolean",
           "default": true,
-          "description": "Specifies whether an Ingress resource should be created"
+          "description": "Specifies whether an HTTPRoute resource should be created"
         },
         "name": {
           "type": "string",
-          "description": "Name of the service, automatically generated from the release name if not specified"
-        },
-        "className": {
-          "type": "string",
-          "default": "nginx",
-          "description": "IngressClass that will be be used to implement the Ingress"
+          "description": "Name of the HTTPRoute, automatically generated from the release name if not specified"
         },
         "hostname": {
           "type": "string",
           "format": "hostname",
           "default": "aspnetcore.example.local",
-          "description": "Default host for the ingress resource, a host pointing to this will be created"
+          "description": "Hostname for the HTTPRoute"
         },
         "path": {
           "type": "string",
           "default": "/",
-          "description": "Default path for the ingress record"
+          "description": "Default path for the HTTPRoute match"
         },
         "additionalPaths": {
           "type": "array",
           "items": {
             "type": "string"
           },
-          "description": "Additional paths pointing to the same service for the ingress record"
+          "description": "Additional paths for the HTTPRoute matches"
         },
         "pathType": {
           "type": "string",
-          "enum": ["Exact", "Prefix", "ImplementationSpecific"],
-          "default": "Prefix",
-          "description": "Ingress path type"
+          "enum": ["Exact", "PathPrefix", "RegularExpression"],
+          "default": "PathPrefix",
+          "description": "HTTPRoute path match type"
         },
         "annotations": {
           "type": "object",
           "additionalProperties": {
             "type": "string"
           },
-          "description": "Additional annotations for the Ingress resource"
+          "description": "Additional annotations for the HTTPRoute resource"
         },
-        "proxyReadTimeout": {
+        "timeout": {
           "type": "string",
-          "default": "60",
-          "description": "Sets the proxy read timeout for nginx ingress controller in seconds. Do not include the unit. (e.g., \"60\", \"300\")"
+          "default": "",
+          "description": "Request timeout in Gateway API duration format (e.g. 60s, 5m). Empty means no timeout (use gateway/mesh defaults)"
         },
-        "tls": {
-          "type": "object",
-          "properties": {
-            "enabled": {
-              "type": "boolean",
-              "default": false,
-              "description": "Enable TLS configuration for the host defined at ingress.hostname parameter"
+        "parentRefs": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "description": "Name of the parent Gateway"
+              },
+              "namespace": {
+                "type": "string",
+                "description": "Namespace of the parent Gateway"
+              },
+              "sectionName": {
+                "type": "string",
+                "description": "SectionName of a section within the target Gateway"
+              }
             },
-            "secretName": {
-              "type": "string",
-              "description": "The TLS secret name containing the TLS certificate for the ingress.hostname host"
-            }
+            "required": ["name"],
+            "additionalProperties": false
           },
-          "additionalProperties": false
+          "description": "References to the parent Gateway resources"
+        },
+        "rules": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          },
+          "description": "Advanced: custom HTTPRoute rules. When non-empty, overrides path/additionalPaths/pathType/timeout"
         }
       },
       "additionalProperties": false

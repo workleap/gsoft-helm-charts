@@ -3,7 +3,7 @@ templates:
   - deployment.yaml
   - service.yaml
   - serviceaccount.yaml
-  - ingress.yaml
+  - httproute.yaml
   - poddisruptionbudget.yaml
 tests:
   # =============================================================================
@@ -16,7 +16,7 @@ tests:
         template: service.yaml
       - equal:
           path: metadata.labels["helm.sh/chart"]
-          value: "aspnetcore-3.2.2"
+          value: "aspnetcore-4.0.0"
         template: service.yaml
       - equal:
           path: metadata.labels["app.kubernetes.io/name"]
@@ -75,7 +75,7 @@ tests:
     asserts:
       - equal:
           path: metadata.labels["helm.sh/chart"]
-          value: "aspnetcore-3.2.2"
+          value: "aspnetcore-4.0.0"
         template: serviceaccount.yaml
       - equal:
           path: metadata.labels["app.kubernetes.io/name"]
@@ -83,25 +83,28 @@ tests:
         template: serviceaccount.yaml
 
   # =============================================================================
-  # Ingress Template Helper Integration Tests
+  # HTTPRoute Template Helper Integration Tests
   # =============================================================================
-  - it: should apply standardLabels consistently in ingress
+  - it: should apply standardLabels consistently in httproute
     set:
-      ingress:
+      httpRoute:
         create: true
         hostname: "test.example.com"
+        parentRefs:
+          - name: platform-gateway
+            namespace: istio-ingress
     asserts:
       - hasDocuments:
           count: 1
-        template: ingress.yaml
+        template: httproute.yaml
       - equal:
           path: metadata.labels["helm.sh/chart"]
-          value: "aspnetcore-3.2.2"
-        template: ingress.yaml
+          value: "aspnetcore-4.0.0"
+        template: httproute.yaml
       - equal:
           path: metadata.labels["app.kubernetes.io/name"]
           value: "aspnetcore"
-        template: ingress.yaml
+        template: httproute.yaml
 
   # =============================================================================
   # PodDisruptionBudget Template Helper Integration Tests
@@ -132,9 +135,12 @@ tests:
       replicaCount: 2
       serviceAccount:
         create: true
-      ingress:
+      httpRoute:
         create: true
         hostname: "test.example.com"
+        parentRefs:
+          - name: platform-gateway
+            namespace: istio-ingress
       podDisruptionBudget:
         minAvailable: 1
     release:
@@ -156,7 +162,7 @@ tests:
       - equal:
           path: metadata.labels["app.kubernetes.io/name"]
           value: "aspnetcore"
-        template: ingress.yaml
+        template: httproute.yaml
 
       - equal:
           path: metadata.labels["app.kubernetes.io/instance"]
@@ -173,7 +179,7 @@ tests:
       - equal:
           path: metadata.labels["app.kubernetes.io/instance"]
           value: "test-app"
-        template: ingress.yaml
+        template: httproute.yaml
 
   - it: should handle migration selectors consistently across deployment and service
     set:

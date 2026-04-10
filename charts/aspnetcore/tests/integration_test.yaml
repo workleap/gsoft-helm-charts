@@ -2,7 +2,7 @@ suite: integration tests
 templates:
   - deployment.yaml
   - service.yaml
-  - ingress.yaml
+  - httproute.yaml
   - poddisruptionbudget.yaml
   - deployment-hpa.yaml
   - serviceaccount.yaml
@@ -17,10 +17,12 @@ tests:
       commonAnnotations:
         version: "1.0.0"
         team: "platform"
-      ingress:
+      httpRoute:
         create: true
         hostname: "my-app.example.com"
-        className: "nginx"
+        parentRefs:
+          - name: platform-gateway
+            namespace: istio-ingress
       serviceAccount:
         create: true
       autoscaling:
@@ -52,17 +54,17 @@ tests:
           value: "production"
         template: service.yaml
 
-      # Ingress should exist
+      # HTTPRoute should exist
       - hasDocuments:
           count: 1
-        template: ingress.yaml
+        template: httproute.yaml
       - isKind:
-          of: Ingress
-        template: ingress.yaml
+          of: HTTPRoute
+        template: httproute.yaml
       - equal:
           path: metadata.labels.environment
           value: "production"
-        template: ingress.yaml
+        template: httproute.yaml
 
       # PDB should exist (replicaCount > 1)
       - hasDocuments:
@@ -99,7 +101,7 @@ tests:
   - it: should handle minimal configuration correctly
     set:
       replicaCount: 1
-      ingress:
+      httpRoute:
         create: false
       serviceAccount:
         create: false
@@ -118,10 +120,10 @@ tests:
           count: 1
         template: service.yaml
 
-      # Ingress should not exist
+      # HTTPRoute should not exist
       - hasDocuments:
           count: 0
-        template: ingress.yaml
+        template: httproute.yaml
 
       # PDB should not exist (replicaCount = 1)
       - hasDocuments:

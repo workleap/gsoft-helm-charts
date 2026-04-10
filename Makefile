@@ -160,17 +160,34 @@ tests/schema/service-port-too-high: export EXPECTED_ERROR_MESSAGE="(port.*maximu
 tests/schema/service-port-too-high:
 	@${HELM_TEMPLATE} --set service.port=65536 ${SHOULD_FAIL_WITH_ERROR_AND_THEN} ${DISPLAY_RESULT}
 
-# Test ingress.pathType enum validation (should fail with invalid pathType)
-tests/schema/ingress-pathtype-invalid: export TEST_DISPLAY_NAME="Schema should reject invalid pathType values"
-tests/schema/ingress-pathtype-invalid: export EXPECTED_ERROR_MESSAGE="(pathType.*|Must be one of)"
-tests/schema/ingress-pathtype-invalid:
-	@${HELM_TEMPLATE} --set ingress.pathType="InvalidType" ${SHOULD_FAIL_WITH_ERROR_AND_THEN} ${DISPLAY_RESULT}
+# Test httpRoute.pathType enum validation (should fail with invalid pathType)
+tests/schema/httproute-pathtype-invalid: export TEST_DISPLAY_NAME="Schema should reject invalid httpRoute pathType values"
+tests/schema/httproute-pathtype-invalid: export EXPECTED_ERROR_MESSAGE="(pathType.*|Must be one of)"
+tests/schema/httproute-pathtype-invalid:
+	@${HELM_TEMPLATE} --set httpRoute.pathType="InvalidType" ${SHOULD_FAIL_WITH_ERROR_AND_THEN} ${DISPLAY_RESULT}
 
-# Test ingress.hostname format validation (should fail with invalid hostname)
-tests/schema/ingress-hostname-invalid: export TEST_DISPLAY_NAME="Schema should reject invalid hostname format"
-tests/schema/ingress-hostname-invalid: export EXPECTED_ERROR_MESSAGE="(ingress.*hostname.*not valid hostname)"
-tests/schema/ingress-hostname-invalid:
-	@${HELM_TEMPLATE} --set ingress.hostname="invalid..hostname" ${SHOULD_FAIL_WITH_ERROR_AND_THEN} ${DISPLAY_RESULT}
+# Test httpRoute.hostname format validation (should fail with invalid hostname)
+tests/schema/httproute-hostname-invalid: export TEST_DISPLAY_NAME="Schema should reject invalid httpRoute hostname format"
+tests/schema/httproute-hostname-invalid: export EXPECTED_ERROR_MESSAGE="(httpRoute.*hostname.*not valid hostname)"
+tests/schema/httproute-hostname-invalid:
+	@${HELM_TEMPLATE} --set httpRoute.hostname="invalid..hostname" ${SHOULD_FAIL_WITH_ERROR_AND_THEN} ${DISPLAY_RESULT}
+
+# Test httpRoute valid configuration
+tests/schema/httproute-valid: export TEST_DISPLAY_NAME="Valid httpRoute configuration should be accepted"
+tests/schema/httproute-valid:
+	@${HELM_TEMPLATE} --set-json 'httpRoute.parentRefs=[{"name":"gw","namespace":"ns"}]' --set httpRoute.hostname=example.com ${SHOULD_SUCCEED_AND_THEN} ${DISPLAY_RESULT}
+
+# Test httpRoute.parentRefs[0] requires name
+tests/schema/httproute-parentref-missing-name: export TEST_DISPLAY_NAME="Schema should reject parentRef without name"
+tests/schema/httproute-parentref-missing-name: export EXPECTED_ERROR_MESSAGE="(parentRefs.*missing property.*name|parentRefs.*name is required)"
+tests/schema/httproute-parentref-missing-name:
+	@${HELM_TEMPLATE} --set-json 'httpRoute.parentRefs=[{"namespace":"istio-ingress"}]' ${SHOULD_FAIL_WITH_ERROR_AND_THEN} ${DISPLAY_RESULT}
+
+# Test httpRoute rejects unknown properties
+tests/schema/httproute-additional-properties: export TEST_DISPLAY_NAME="Schema should reject unknown properties in httpRoute"
+tests/schema/httproute-additional-properties: export EXPECTED_ERROR_MESSAGE="(httpRoute.*additional propert|Additional property)"
+tests/schema/httproute-additional-properties:
+	@${HELM_TEMPLATE} --set httpRoute.unknownField=foo ${SHOULD_FAIL_WITH_ERROR_AND_THEN} ${DISPLAY_RESULT}
 
 # Test podDisruptionBudget.minAvailable with zero integer (should fail due to minimum: 1)
 tests/schema/pdb-minavailable-zero: export TEST_DISPLAY_NAME="Schema should reject minAvailable=0"

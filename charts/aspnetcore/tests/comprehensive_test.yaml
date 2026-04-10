@@ -3,7 +3,7 @@ templates:
   - deployment.yaml
   - poddisruptionbudget.yaml
   - service.yaml
-  - ingress.yaml
+  - httproute.yaml
   - deployment-hpa.yaml
   - serviceaccount.yaml
   - podidentity.yaml
@@ -23,13 +23,12 @@ tests:
         team: "platform"
       image:
         tag: "v1.0.0"
-      ingress:
+      httpRoute:
         create: true
         hostname: "myapp.example.com"
-        className: "nginx"
-        tls:
-          enabled: true
-          secretName: "myapp-tls"
+        parentRefs:
+          - name: platform-gateway
+            namespace: istio-ingress
         additionalPaths:
           - "/api"
           - "/health"
@@ -61,7 +60,7 @@ tests:
         template: service.yaml
       - hasDocuments:
           count: 1
-        template: ingress.yaml
+        template: httproute.yaml
       - hasDocuments:
           count: 1
         template: poddisruptionbudget.yaml
@@ -84,13 +83,13 @@ tests:
       - equal:
           path: metadata.labels.environment
           value: "production"
-        template: ingress.yaml
+        template: httproute.yaml
 
   - it: should deploy minimal configuration correctly
     set:
       replicaCount: 1
       environment: "Development"
-      ingress:
+      httpRoute:
         create: false
       serviceAccount:
         create: false
@@ -110,7 +109,7 @@ tests:
       # Optional resources should not exist
       - hasDocuments:
           count: 0
-        template: ingress.yaml
+        template: httproute.yaml
       - hasDocuments:
           count: 0
         template: poddisruptionbudget.yaml

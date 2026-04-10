@@ -5,15 +5,13 @@ aspnetcore:
     tag: "1.0.78"
     pullPolicy: IfNotPresent
 
-  ingress:
+  httpRoute:
     hostname: "api.idp.workleap-dev.com"
-    path: /leap.shop/sam-caya(/|$)(.*)
-    pathType: ImplementationSpecific
-    annotations:
-      nginx.ingress.kubernetes.io/ssl-redirect: "false"
-      nginx.ingress.kubernetes.io/use-regex: "true"
-      nginx.ingress.kubernetes.io/rewrite-target: /$2
-      nginx.ingress.kubernetes.io/x-forwarded-prefix: /leap.shop
+    path: /leap.shop/sam-caya
+    pathType: PathPrefix
+    parentRefs:
+      - name: platform-gateway
+        namespace: istio-ingress
 
   environment: stg
 

@@ -39,34 +39,31 @@ service:
   port: 80
   annotations: {}
 
-## Configure the ingress resource that allows you to access the ASP.NET Core app (https://kubernetes.io/docs/user-guide/ingress/)
-## @param ingress.create Specifies whether an Ingress resource should be created
-## @param ingress.name Name of the service, automatically generated from the release name if not specified
-## @param ingress.className IngressClass that will be be used to implement the Ingress
-## @param ingress.hostname Default host for the ingress resource, a host pointing to this will be created
-## @param ingress.path Default path for the ingress record
-## @param ingress.additionalPaths Additional paths pointing to the same service for the ingress record
-## @param ingress.pathType Ingress path type
-## Use pathType: Prefix if the paths contains only alphanumerical and "/" characters.
-## Use pathType: ImplementationSpecific if the path contains REGEX.
-## @param ingress.annotations Additional annotations for the Ingress resource, for example nginx ingress annotations
-## @param ingress.proxyReadTimeout Sets the proxy read timeout for nginx ingress controller in seconds. Do not include the unit. (e.g., "60", "300")
-## @param ingress.tls.enabled Enable TLS configuration for the host defined at `ingress.hostname` parameter
-## @param ingress.tls.secretName The TLS secret name containing the TLS certificate for the `ingress.hostname` host
+## Configure the HTTPRoute resource for Gateway API (gateway.networking.k8s.io/v1)
+## @param httpRoute.create Specifies whether an HTTPRoute resource should be created
+## @param httpRoute.name Name of the HTTPRoute, automatically generated from the release name if not specified
+## @param httpRoute.hostname Hostname for the HTTPRoute
+## @param httpRoute.path Default path for the HTTPRoute match
+## @param httpRoute.additionalPaths Additional paths for the HTTPRoute matches
+## @param httpRoute.pathType HTTPRoute path match type
+## Use pathType: PathPrefix if the path contains only alphanumerical and "/" characters.
+## Use pathType: RegularExpression if the path contains REGEX.
+## @param httpRoute.annotations Additional annotations for the HTTPRoute resource
+## @param httpRoute.timeout Request timeout in Gateway API duration format (e.g. "60s", "5m"). Empty means no timeout (use gateway/mesh defaults)
+## @param httpRoute.parentRefs List of parent gateway references (must include at least name; namespace and sectionName are optional)
+## @param httpRoute.rules Advanced: custom HTTPRoute rules. When non-empty, overrides path/additionalPaths/pathType/timeout
 ##
-ingress:
+httpRoute:
   create: true
   name: ""
-  className: nginx
   hostname: aspnetcore.example.local
   path: /
   additionalPaths: []
-  pathType: Prefix
+  pathType: PathPrefix
   annotations: {}
-  proxyReadTimeout: "60"
-  tls:
-    enabled: false
-    secretName: ""
+  timeout: ""
+  parentRefs: []
+  rules: []
 
 ## ASP.NET Core deployment parameters
 ## @param deployment.name Name of the deployment, automatically generated from the release name if not specified
