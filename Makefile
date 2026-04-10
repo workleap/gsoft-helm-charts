@@ -12,7 +12,7 @@ HELM_UNITTEST_PLUGIN_GIT = https://github.com/helm-unittest/helm-unittest.git
 FAIL_ON_ERRORS ?= ${CI}
 EXIT_CODE = $(if $(filter TRUE true 1,$(FAIL_ON_ERRORS)),1,0)
 
-HELM_TEMPLATE = helm template ${HELM_RELEASE_NAME} charts/aspnetcore
+HELM_TEMPLATE = helm template ${HELM_RELEASE_NAME} charts/aspnetcore --set-json 'httpRoute.parentRefs=[{"name":"default"}]'
 DISPLAY_RESULT = echo "✅ PASS: $@ - ${TEST_DISPLAY_NAME}" || (echo "❌ ERROR: $@ FAILED - ${TEST_DISPLAY_NAME}" && exit ${EXIT_CODE})
 SHOULD_SUCCEED_AND_THEN = >/dev/null 2>&1 &&
 SHOULD_FAIL_WITH_ERROR_AND_THEN = 2>&1 | grep -q -E ${EXPECTED_ERROR_MESSAGE} &&
@@ -159,6 +159,17 @@ tests/schema/service-port-too-high: export TEST_DISPLAY_NAME="Schema should reje
 tests/schema/service-port-too-high: export EXPECTED_ERROR_MESSAGE="(port.*maximum|Must be less than or equal to 65535)"
 tests/schema/service-port-too-high:
 	@${HELM_TEMPLATE} --set service.port=65536 ${SHOULD_FAIL_WITH_ERROR_AND_THEN} ${DISPLAY_RESULT}
+
+# Test httpRoute.create without parentRefs should fail
+tests/prechecks/httproute-parentrefs-required: export TEST_DISPLAY_NAME="Validation should require parentRefs when httpRoute.create is true"
+tests/prechecks/httproute-parentrefs-required: export EXPECTED_ERROR_MESSAGE="httpRoute.parentRefs is required"
+tests/prechecks/httproute-parentrefs-required:
+	@${HELM_TEMPLATE} --set httpRoute.create=true --set-json 'httpRoute.parentRefs=[]' ${SHOULD_FAIL_WITH_ERROR_AND_THEN} ${DISPLAY_RESULT}
+
+# Test httpRoute.create=false without parentRefs should succeed
+tests/prechecks/httproute-disabled-no-parentrefs: export TEST_DISPLAY_NAME="Disabled httpRoute should not require parentRefs"
+tests/prechecks/httproute-disabled-no-parentrefs:
+	@${HELM_TEMPLATE} --set httpRoute.create=false ${SHOULD_SUCCEED_AND_THEN} ${DISPLAY_RESULT}
 
 # Test httpRoute.pathType enum validation (should fail with invalid pathType)
 tests/schema/httproute-pathtype-invalid: export TEST_DISPLAY_NAME="Schema should reject invalid httpRoute pathType values"

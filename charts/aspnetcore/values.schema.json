@@ -153,8 +153,7 @@
                 "description": "SectionName of a section within the target Gateway"
               }
             },
-            "required": ["name"],
-            "additionalProperties": false
+            "required": ["name"]
           },
           "description": "References to the parent Gateway resources"
         },
