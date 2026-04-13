@@ -26,6 +26,7 @@ jobs:
       - name: Setup Helm
         uses: azure/setup-helm@b9e51907a09c216f16ebe8536097933489208112 # v4
         with:
+          version: v3.20.2
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Lint aspnetcore Helm chart
@@ -33,8 +34,8 @@ jobs:
 
       - name: Validate HELM chart
         run: |
-          helm plugin install https://github.com/melmorabity/helm-kubeconform --version 0.6.7.1 --verify=false
-          helm kubeconform ./charts/aspnetcore/ --values ./charts/aspnetcore/values.yaml --strict
+          helm plugin install https://github.com/melmorabity/helm-kubeconform --version 0.6.7.1
+          helm kubeconform ./charts/aspnetcore/ --values ./charts/aspnetcore/values.yaml --strict --skip HTTPRoute --set-json 'httpRoute.parentRefs=[{"name":"default"}]'
 
       - name: Run unit tests
         run: make tests
@@ -66,6 +67,7 @@ jobs:
       - name: Setup Helm
         uses: azure/setup-helm@b9e51907a09c216f16ebe8536097933489208112 # v4
         with:
+          version: v3.20.2
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Create Kubernetes ${{ matrix.kubernetesVersion }} Kind cluster
@@ -87,6 +89,8 @@ jobs:
         run: |
           cat <<EOF > test-values.yaml
           environment: Staging
+          httpRoute:
+            create: false
           readinessProbe:
             httpGet:
               path: "/"

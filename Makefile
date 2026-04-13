@@ -12,7 +12,7 @@ HELM_UNITTEST_PLUGIN_GIT = https://github.com/helm-unittest/helm-unittest.git
 FAIL_ON_ERRORS ?= ${CI}
 EXIT_CODE = $(if $(filter TRUE true 1,$(FAIL_ON_ERRORS)),1,0)
 
-HELM_TEMPLATE = helm template ${HELM_RELEASE_NAME} charts/aspnetcore
+HELM_TEMPLATE = helm template ${HELM_RELEASE_NAME} charts/aspnetcore --set-json 'httpRoute.parentRefs=[{"name":"default"}]'
 DISPLAY_RESULT = echo "✅ PASS: $@ - ${TEST_DISPLAY_NAME}" || (echo "❌ ERROR: $@ FAILED - ${TEST_DISPLAY_NAME}" && exit ${EXIT_CODE})
 SHOULD_SUCCEED_AND_THEN = >/dev/null 2>&1 &&
 SHOULD_FAIL_WITH_ERROR_AND_THEN = 2>&1 | grep -q -E ${EXPECTED_ERROR_MESSAGE} &&
@@ -29,7 +29,7 @@ $(INTEGRATION_TEST_CHART_LOCK_FILE):
 
 $(HELM_UNITTEST_PLUGIN):
 	@echo "Installing helm unittest plugin..."
-	@helm plugin install $(HELM_UNITTEST_PLUGIN_GIT) --verify=false >/dev/null
+	@helm plugin install $(HELM_UNITTEST_PLUGIN_GIT) --version v0.8.2 >/dev/null
 	@echo "✅ helm unittest plugin installed."
 
 tests/helm-unittests: $(HELM_UNITTEST_PLUGIN)
@@ -160,17 +160,45 @@ tests/schema/service-port-too-high: export EXPECTED_ERROR_MESSAGE="(port.*maximu
 tests/schema/service-port-too-high:
 	@${HELM_TEMPLATE} --set service.port=65536 ${SHOULD_FAIL_WITH_ERROR_AND_THEN} ${DISPLAY_RESULT}
 
-# Test ingress.pathType enum validation (should fail with invalid pathType)
-tests/schema/ingress-pathtype-invalid: export TEST_DISPLAY_NAME="Schema should reject invalid pathType values"
-tests/schema/ingress-pathtype-invalid: export EXPECTED_ERROR_MESSAGE="(pathType.*|Must be one of)"
-tests/schema/ingress-pathtype-invalid:
-	@${HELM_TEMPLATE} --set ingress.pathType="InvalidType" ${SHOULD_FAIL_WITH_ERROR_AND_THEN} ${DISPLAY_RESULT}
+# Test httpRoute.create without parentRefs should fail
+tests/prechecks/httproute-parentrefs-required: export TEST_DISPLAY_NAME="Validation should require parentRefs when httpRoute.create is true"
+tests/prechecks/httproute-parentrefs-required: export EXPECTED_ERROR_MESSAGE="httpRoute.parentRefs is required"
+tests/prechecks/httproute-parentrefs-required:
+	@${HELM_TEMPLATE} --set httpRoute.create=true --set-json 'httpRoute.parentRefs=[]' ${SHOULD_FAIL_WITH_ERROR_AND_THEN} ${DISPLAY_RESULT}
 
-# Test ingress.hostname format validation (should fail with invalid hostname)
-tests/schema/ingress-hostname-invalid: export TEST_DISPLAY_NAME="Schema should reject invalid hostname format"
-tests/schema/ingress-hostname-invalid: export EXPECTED_ERROR_MESSAGE="(ingress.*hostname.*not valid hostname)"
-tests/schema/ingress-hostname-invalid:
-	@${HELM_TEMPLATE} --set ingress.hostname="invalid..hostname" ${SHOULD_FAIL_WITH_ERROR_AND_THEN} ${DISPLAY_RESULT}
+# Test httpRoute.create=false without parentRefs should succeed
+tests/prechecks/httproute-disabled-no-parentrefs: export TEST_DISPLAY_NAME="Disabled httpRoute should not require parentRefs"
+tests/prechecks/httproute-disabled-no-parentrefs:
+	@${HELM_TEMPLATE} --set httpRoute.create=false ${SHOULD_SUCCEED_AND_THEN} ${DISPLAY_RESULT}
+
+# Test httpRoute.pathType enum validation (should fail with invalid pathType)
+tests/schema/httproute-pathtype-invalid: export TEST_DISPLAY_NAME="Schema should reject invalid httpRoute pathType values"
+tests/schema/httproute-pathtype-invalid: export EXPECTED_ERROR_MESSAGE="(pathType.*|Must be one of)"
+tests/schema/httproute-pathtype-invalid:
+	@${HELM_TEMPLATE} --set httpRoute.pathType="InvalidType" ${SHOULD_FAIL_WITH_ERROR_AND_THEN} ${DISPLAY_RESULT}
+
+# Test httpRoute.hostname format validation (should fail with invalid hostname)
+tests/schema/httproute-hostname-invalid: export TEST_DISPLAY_NAME="Schema should reject invalid httpRoute hostname format"
+tests/schema/httproute-hostname-invalid: export EXPECTED_ERROR_MESSAGE="(httpRoute.*hostname.*not valid hostname)"
+tests/schema/httproute-hostname-invalid:
+	@${HELM_TEMPLATE} --set httpRoute.hostname="invalid..hostname" ${SHOULD_FAIL_WITH_ERROR_AND_THEN} ${DISPLAY_RESULT}
+
+# Test httpRoute valid configuration
+tests/schema/httproute-valid: export TEST_DISPLAY_NAME="Valid httpRoute configuration should be accepted"
+tests/schema/httproute-valid:
+	@${HELM_TEMPLATE} --set-json 'httpRoute.parentRefs=[{"name":"gw","namespace":"ns"}]' --set httpRoute.hostname=example.com ${SHOULD_SUCCEED_AND_THEN} ${DISPLAY_RESULT}
+
+# Test httpRoute.parentRefs[0] requires name
+tests/schema/httproute-parentref-missing-name: export TEST_DISPLAY_NAME="Schema should reject parentRef without name"
+tests/schema/httproute-parentref-missing-name: export EXPECTED_ERROR_MESSAGE="(parentRefs.*missing property.*name|parentRefs.*name is required)"
+tests/schema/httproute-parentref-missing-name:
+	@${HELM_TEMPLATE} --set-json 'httpRoute.parentRefs=[{"namespace":"istio-ingress"}]' ${SHOULD_FAIL_WITH_ERROR_AND_THEN} ${DISPLAY_RESULT}
+
+# Test httpRoute rejects unknown properties
+tests/schema/httproute-additional-properties: export TEST_DISPLAY_NAME="Schema should reject unknown properties in httpRoute"
+tests/schema/httproute-additional-properties: export EXPECTED_ERROR_MESSAGE="(httpRoute.*additional propert|Additional property)"
+tests/schema/httproute-additional-properties:
+	@${HELM_TEMPLATE} --set httpRoute.unknownField=foo ${SHOULD_FAIL_WITH_ERROR_AND_THEN} ${DISPLAY_RESULT}
 
 # Test podDisruptionBudget.minAvailable with zero integer (should fail due to minimum: 1)
 tests/schema/pdb-minavailable-zero: export TEST_DISPLAY_NAME="Schema should reject minAvailable=0"

@@ -1,0 +1,45 @@
+{{- if .Values.httpRoute.create }}
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: {{ default (printf "%s-httproute" .Release.Name) .Values.httpRoute.name }}
+  labels:
+    {{- include "aspnetcore.standardLabels" . | nindent 4 }}
+    {{- with .Values.commonLabels }}
+      {{- toYaml . | nindent 4 }}
+    {{- end }}
+  annotations:
+    {{- with .Values.httpRoute.annotations }}
+      {{- toYaml . | nindent 4 }}
+    {{- end }}
+    {{- with .Values.commonAnnotations }}
+      {{- toYaml . | nindent 4 }}
+    {{- end }}
+spec:
+  parentRefs:
+    {{- toYaml .Values.httpRoute.parentRefs | nindent 4 }}
+  hostnames:
+    - {{ .Values.httpRoute.hostname | quote }}
+  {{- if .Values.httpRoute.rules }}
+  rules:
+    {{- toYaml .Values.httpRoute.rules | nindent 4 }}
+  {{- else }}
+  rules:
+    - matches:
+        - path:
+            type: {{ .Values.httpRoute.pathType }}
+            value: {{ .Values.httpRoute.path }}
+      {{- range .Values.httpRoute.additionalPaths }}
+        - path:
+            type: {{ $.Values.httpRoute.pathType }}
+            value: {{ . }}
+      {{- end }}
+      backendRefs:
+        - name: {{ default (printf "%s-service" .Release.Name) .Values.service.name }}
+          port: {{ .Values.service.port }}
+      {{- if .Values.httpRoute.timeout }}
+      timeouts:
+        request: {{ .Values.httpRoute.timeout | quote }}
+      {{- end }}
+  {{- end }}
+{{- end }}
