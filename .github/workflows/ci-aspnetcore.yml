@@ -89,6 +89,8 @@ jobs:
         run: |
           cat <<EOF > test-values.yaml
           environment: Staging
+          httpRoute:
+            create: false
           readinessProbe:
             httpGet:
               path: "/"
