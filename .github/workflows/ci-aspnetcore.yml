@@ -26,7 +26,7 @@ jobs:
       - name: Setup Helm
         uses: azure/setup-helm@b9e51907a09c216f16ebe8536097933489208112 # v4
         with:
-          version: v3.17.3
+          version: v3.20.2
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Lint aspnetcore Helm chart
@@ -67,7 +67,7 @@ jobs:
       - name: Setup Helm
         uses: azure/setup-helm@b9e51907a09c216f16ebe8536097933489208112 # v4
         with:
-          version: v3.17.3
+          version: v3.20.2
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Create Kubernetes ${{ matrix.kubernetesVersion }} Kind cluster
