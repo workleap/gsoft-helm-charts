@@ -26,11 +26,12 @@ The `environment` value is now restricted to `Development`, `Staging`, or `Produ
 
 **Before (v4):** any string was accepted (e.g. `environment: dev`, `environment: prod`, `environment: QA`).
 
-**After (v5):** only the three canonical values are valid:
+**After (v5):** only the four canonical values are valid:
 ```yaml
 environment: Development  # default
 environment: Staging
 environment: Production
+environment: DR
 ```
 
 **Migration steps:**
