@@ -7,7 +7,8 @@
     {{- end }}
 {{- end }}
 {{- if include "aspnetcore.isProduction" . }}
-    {{- if le (int (include "aspnetcore.pdbReplicas" .)) 1 }}
+    {{- $replicas := ternary (.Values.autoscaling.minReplicas | int) (.Values.replicaCount | int) .Values.autoscaling.enabled -}}
+    {{- if le $replicas 1 }}
     {{- fail "production deployments require replicaCount > 1 (or autoscaling.minReplicas > 1)" }}
     {{- end }}
 {{- end }}

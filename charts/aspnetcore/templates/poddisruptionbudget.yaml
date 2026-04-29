@@ -1,4 +1,5 @@
-{{- if and (include "aspnetcore.isProduction" .) (gt (int (include "aspnetcore.pdbReplicas" .)) 1) }}
+{{- $replicas := ternary (.Values.autoscaling.minReplicas | int) (.Values.replicaCount | int) .Values.autoscaling.enabled -}}
+{{- if and (include "aspnetcore.isProduction" .) (gt $replicas 1) }}
 apiVersion: policy/v1
 kind: PodDisruptionBudget
 metadata:

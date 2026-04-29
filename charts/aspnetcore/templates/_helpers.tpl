@@ -17,15 +17,6 @@ app.kubernetes.io/managed-by: {{ .Release.Service }}
 {{- if eq .Values.environment "Production" -}}true{{- end -}}
 {{- end }}
 
-{{/* Returns the effective replica count for PDB calculations as an integer */}}
-{{- define "aspnetcore.pdbReplicas" -}}
-{{- if .Values.autoscaling.enabled -}}
-{{- required "autoscaling.minReplicas is required when autoscaling is enabled" .Values.autoscaling.minReplicas | int -}}
-{{- else -}}
-{{- .Values.replicaCount | int -}}
-{{- end -}}
-{{- end }}
-
 {{/* Dynamic service account name */}}
 {{- define "aspnetcore.serviceAccountName" -}}
 {{- if .Values.serviceAccount.create }}
