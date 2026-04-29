@@ -14,7 +14,7 @@ podDisruptionBudget:
 
 **After (v5):** Remove the `podDisruptionBudget:` block entirely.
 
-The chart now creates a PDB **only when `environment` is `Production`** (case-insensitive). The budget is computed automatically: `maxUnavailable = effectiveReplicas - 1`, where `effectiveReplicas` is `autoscaling.minReplicas` when autoscaling is enabled, otherwise `replicaCount`.
+The chart now creates a PDB **only when `environment` is `Production`**. The budget is always `maxUnavailable: 1`, which allows one pod to be evicted at a time during node drains regardless of replica count.
 
 No PDB is created for non-production environments (Development, Staging, etc.).
 

@@ -4,7 +4,7 @@ kind: PodDisruptionBudget
 metadata:
   name: {{ .Release.Name }}-pdb
 spec:
-  maxUnavailable: {{ sub (int (include "aspnetcore.pdbReplicas" .)) 1 }}
+  maxUnavailable: 1
   selector:
     matchLabels:
       {{- if .Values.migration.existingSelectors.enabled }}

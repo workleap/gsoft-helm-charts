@@ -45,12 +45,12 @@ tests:
           path: spec.maxUnavailable
           value: 1
 
-  - it: should create PDB with maxUnavailable 2 when Production and replicaCount 3
+  - it: should create PDB with maxUnavailable 1 regardless of replicaCount
     set:
       environment: Production
       autoscaling:
         enabled: false
-      replicaCount: 3
+      replicaCount: 10
       httpRoute:
         create: false
     asserts:
@@ -58,9 +58,9 @@ tests:
           count: 1
       - equal:
           path: spec.maxUnavailable
-          value: 2
+          value: 1
 
-  - it: should use autoscaling.minReplicas for maxUnavailable when autoscaling enabled
+  - it: should create PDB with maxUnavailable 1 when autoscaling enabled
     set:
       environment: Production
       autoscaling:
@@ -75,7 +75,7 @@ tests:
           count: 1
       - equal:
           path: spec.maxUnavailable
-          value: 3
+          value: 1
 
   - it: should use existingSelectors when migration.existingSelectors.enabled is true
     set:
