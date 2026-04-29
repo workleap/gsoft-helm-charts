@@ -77,30 +77,6 @@ tests:
           path: spec.maxUnavailable
           value: 3
 
-  - it: should be case-insensitive for environment production (lowercase)
-    set:
-      environment: production
-      autoscaling:
-        enabled: false
-      replicaCount: 2
-      httpRoute:
-        create: false
-    asserts:
-      - hasDocuments:
-          count: 1
-
-  - it: should be case-insensitive for environment PRODUCTION (uppercase)
-    set:
-      environment: PRODUCTION
-      autoscaling:
-        enabled: false
-      replicaCount: 2
-      httpRoute:
-        create: false
-    asserts:
-      - hasDocuments:
-          count: 1
-
   - it: should use existingSelectors when migration.existingSelectors.enabled is true
     set:
       environment: Production

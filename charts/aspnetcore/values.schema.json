@@ -18,6 +18,7 @@
     },
     "environment": {
       "type": "string",
+      "enum": ["Development", "Staging", "Production"],
       "default": "Development",
       "description": "The ASP.NET Core environment name (DOTNET_ENVIRONMENT)"
     },
