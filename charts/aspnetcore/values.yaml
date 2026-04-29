@@ -181,7 +181,7 @@ azureWorkloadIdentity:
 
 ## Autoscaling deployment settings
 ## ref: https://kubernetes.io/docs/tasks/run-application/horizontal-pod-autoscale/
-## @param autoscaling.enabled Default to false. Enable autoscaling
+## @param autoscaling.enabled Default to true. Enable autoscaling
 ## @param autoscaling.minReplicas Minimum number of ASP.NET Core replicas
 ## @param autoscaling.maxReplicas Maximum number of ASP.NET Core replicas, minimum is minReplicas value.
 ## @param autoscaling.targetCPUUtilizationPercentage Target CPU utilization percentage for autoscaling

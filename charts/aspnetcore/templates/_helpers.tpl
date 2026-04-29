@@ -17,12 +17,12 @@ app.kubernetes.io/managed-by: {{ .Release.Service }}
 {{- if eq (lower .Values.environment) "production" -}}true{{- end -}}
 {{- end }}
 
-{{/* Returns the effective replica count for PDB calculations */}}
+{{/* Returns the effective replica count for PDB calculations as an integer */}}
 {{- define "aspnetcore.pdbReplicas" -}}
 {{- if .Values.autoscaling.enabled -}}
-{{- .Values.autoscaling.minReplicas -}}
+{{- required "autoscaling.minReplicas is required when autoscaling is enabled" .Values.autoscaling.minReplicas | int -}}
 {{- else -}}
-{{- .Values.replicaCount -}}
+{{- .Values.replicaCount | int -}}
 {{- end -}}
 {{- end }}
 
