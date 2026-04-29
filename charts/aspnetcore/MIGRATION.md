@@ -20,10 +20,24 @@ No PDB is created for non-production environments (Development, Staging, etc.).
 
 **New validation:** The chart fails with an error if `environment: Production` and effective replicas ≤ 1. Production deployments must run at least 2 replicas.
 
+### environment enum (breaking change)
+
+The `environment` value is now restricted to `Development`, `Staging`, or `Production`. Any other value will fail schema validation.
+
+**Before (v4):** any string was accepted (e.g. `environment: dev`, `environment: prod`, `environment: QA`).
+
+**After (v5):** only the three canonical values are valid:
+```yaml
+environment: Development  # default
+environment: Staging
+environment: Production
+```
+
 **Migration steps:**
 1. Remove `podDisruptionBudget:` from your values.
-2. Ensure `environment: Production` is set for production deployments.
-3. Ensure `replicaCount ≥ 2` (or `autoscaling.minReplicas ≥ 2`) for production.
+2. Replace any non-standard `environment` values with the closest canonical equivalent.
+3. Ensure `environment: Production` is set for production deployments.
+4. Ensure `replicaCount ≥ 2` (or `autoscaling.minReplicas ≥ 2`) for production.
 
 
 ## v3 → v4
