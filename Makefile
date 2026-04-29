@@ -61,7 +61,7 @@ tests/prechecks/production-autoscaling-single-replica-invalid:
 # Test production with replicaCount=2 should render PDB with maxUnavailable=1
 tests/prechecks/pdb-valid: export TEST_DISPLAY_NAME="Production with replicaCount=2 should render PDB with maxUnavailable=1"
 tests/prechecks/pdb-valid:
-	@${HELM_TEMPLATE} --set environment=Production --set autoscaling.enabled=false --set replicaCount=2 2>&1 | grep -q "maxUnavailable: 1" && ${DISPLAY_RESULT}
+	@${HELM_TEMPLATE} --set environment=Production --set autoscaling.enabled=false --set replicaCount=2 2>&1 | grep -q 'maxUnavailable: "50%"' && ${DISPLAY_RESULT}
 
 # Test autoscaling disabled with valid configuration (should pass without prechecks)
 tests/prechecks/autoscaling-disabled-valid: export TEST_DISPLAY_NAME="Autoscaling disabled configuration should be accepted"

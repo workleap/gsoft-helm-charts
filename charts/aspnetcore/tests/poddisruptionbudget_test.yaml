@@ -25,7 +25,7 @@ tests:
       - hasDocuments:
           count: 0
 
-  - it: should create PDB with maxUnavailable 1 when Production and replicaCount 2
+  - it: should create PDB with maxUnavailable 50% when Production and replicaCount 2
     set:
       environment: Production
       autoscaling:
@@ -43,9 +43,9 @@ tests:
           value: RELEASE-NAME-pdb
       - equal:
           path: spec.maxUnavailable
-          value: 1
+          value: "50%"
 
-  - it: should create PDB with maxUnavailable 1 regardless of replicaCount
+  - it: should create PDB with maxUnavailable 50% regardless of replicaCount
     set:
       environment: Production
       autoscaling:
@@ -58,9 +58,9 @@ tests:
           count: 1
       - equal:
           path: spec.maxUnavailable
-          value: 1
+          value: "50%"
 
-  - it: should create PDB with maxUnavailable 1 when autoscaling enabled
+  - it: should create PDB with maxUnavailable 50% when autoscaling enabled
     set:
       environment: Production
       autoscaling:
@@ -75,7 +75,7 @@ tests:
           count: 1
       - equal:
           path: spec.maxUnavailable
-          value: 1
+          value: "50%"
 
   - it: should use existingSelectors when migration.existingSelectors.enabled is true
     set:
