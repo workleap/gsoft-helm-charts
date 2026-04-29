@@ -12,6 +12,20 @@ app.kubernetes.io/version: {{ .Values.image.tag | quote }}
 app.kubernetes.io/managed-by: {{ .Release.Service }}
 {{- end }}
 
+{{/* Returns truthy when environment is Production (case-insensitive) */}}
+{{- define "aspnetcore.isProduction" -}}
+{{- if eq (lower .Values.environment) "production" -}}true{{- end -}}
+{{- end }}
+
+{{/* Returns the effective replica count for PDB calculations */}}
+{{- define "aspnetcore.pdbReplicas" -}}
+{{- if .Values.autoscaling.enabled -}}
+{{- .Values.autoscaling.minReplicas -}}
+{{- else -}}
+{{- .Values.replicaCount -}}
+{{- end -}}
+{{- end }}
+
 {{/* Dynamic service account name */}}
 {{- define "aspnetcore.serviceAccountName" -}}
 {{- if .Values.serviceAccount.create }}

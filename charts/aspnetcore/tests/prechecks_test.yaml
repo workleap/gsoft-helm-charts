@@ -1,0 +1,64 @@
+suite: prechecks tests
+templates:
+  - prechecks.tpl
+tests:
+  - it: should fail when production environment has replicaCount 1 (autoscaling disabled)
+    set:
+      environment: Production
+      autoscaling:
+        enabled: false
+      replicaCount: 1
+      httpRoute:
+        parentRefs:
+          - name: gateway
+    asserts:
+      - failedTemplate:
+          errorMessage: production deployments require replicaCount > 1 (or autoscaling.minReplicas > 1)
+
+  - it: should fail when production environment has autoscaling.minReplicas 1
+    set:
+      environment: Production
+      autoscaling:
+        enabled: true
+        minReplicas: 1
+        maxReplicas: 3
+      httpRoute:
+        parentRefs:
+          - name: gateway
+    asserts:
+      - failedTemplate:
+          errorMessage: production deployments require replicaCount > 1 (or autoscaling.minReplicas > 1)
+
+  - it: should pass when production environment has replicaCount 2
+    set:
+      environment: Production
+      autoscaling:
+        enabled: false
+      replicaCount: 2
+      httpRoute:
+        parentRefs:
+          - name: gateway
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: should pass when development environment has replicaCount 1
+    set:
+      environment: Development
+      autoscaling:
+        enabled: false
+      replicaCount: 1
+      httpRoute:
+        create: false
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: should fail when httpRoute.create is true without parentRefs
+    set:
+      httpRoute:
+        create: true
+        parentRefs: []
+    asserts:
+      - failedTemplate:
+          errorMessage: httpRoute.parentRefs is required when httpRoute.create is true

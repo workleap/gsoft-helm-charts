@@ -16,7 +16,7 @@ tests:
         template: service.yaml
       - equal:
           path: metadata.labels["helm.sh/chart"]
-          value: "aspnetcore-4.0.0"
+          value: "aspnetcore-5.0.0"
         template: service.yaml
       - equal:
           path: metadata.labels["app.kubernetes.io/name"]
@@ -75,7 +75,7 @@ tests:
     asserts:
       - equal:
           path: metadata.labels["helm.sh/chart"]
-          value: "aspnetcore-4.0.0"
+          value: "aspnetcore-5.0.0"
         template: serviceaccount.yaml
       - equal:
           path: metadata.labels["app.kubernetes.io/name"]
@@ -99,7 +99,7 @@ tests:
         template: httproute.yaml
       - equal:
           path: metadata.labels["helm.sh/chart"]
-          value: "aspnetcore-4.0.0"
+          value: "aspnetcore-5.0.0"
         template: httproute.yaml
       - equal:
           path: metadata.labels["app.kubernetes.io/name"]
@@ -111,9 +111,13 @@ tests:
   # =============================================================================
   - it: should apply selectorLabels consistently in poddisruptionbudget
     set:
+      environment: Production
+      autoscaling:
+        enabled: false
       replicaCount: 3
-      podDisruptionBudget:
-        minAvailable: 1
+      httpRoute:
+        parentRefs:
+          - name: gateway
     asserts:
       - hasDocuments:
           count: 1
@@ -141,8 +145,6 @@ tests:
         parentRefs:
           - name: platform-gateway
             namespace: istio-ingress
-      podDisruptionBudget:
-        minAvailable: 1
     release:
       name: "test-app"
     asserts:

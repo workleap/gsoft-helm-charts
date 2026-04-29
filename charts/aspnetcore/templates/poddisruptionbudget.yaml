@@ -1,10 +1,10 @@
-{{- if ne ((.Values.replicaCount | int)) 1 }}
+{{- if and (include "aspnetcore.isProduction" .) (gt (int (include "aspnetcore.pdbReplicas" .)) 1) }}
 apiVersion: policy/v1
 kind: PodDisruptionBudget
 metadata:
   name: {{ .Release.Name }}-pdb
 spec:
-  minAvailable: {{ .Values.podDisruptionBudget.minAvailable }}
+  maxUnavailable: {{ sub (int (include "aspnetcore.pdbReplicas" .)) 1 }}
   selector:
     matchLabels:
       {{- if .Values.migration.existingSelectors.enabled }}

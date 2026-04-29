@@ -2,16 +2,37 @@ suite: poddisruptionbudget tests
 templates:
   - poddisruptionbudget.yaml
 tests:
-  - it: should not be created when replicaCount=1 (default)
+  - it: should not be created when environment is Development (default)
     set:
-      replicaCount: 1
+      replicaCount: 3
+      autoscaling:
+        enabled: false
+      httpRoute:
+        create: false
     asserts:
       - hasDocuments:
           count: 0
 
-  - it: should be created when replicaCount>1
+  - it: should not be created when environment is Production but replicas == 1
     set:
+      environment: Production
+      autoscaling:
+        enabled: false
+      replicaCount: 1
+      httpRoute:
+        create: false
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: should create PDB with maxUnavailable 1 when Production and replicaCount 2
+    set:
+      environment: Production
+      autoscaling:
+        enabled: false
       replicaCount: 2
+      httpRoute:
+        create: false
     asserts:
       - hasDocuments:
           count: 1
@@ -21,35 +42,99 @@ tests:
           path: metadata.name
           value: RELEASE-NAME-pdb
       - equal:
+          path: spec.maxUnavailable
+          value: 1
+
+  - it: should create PDB with maxUnavailable 2 when Production and replicaCount 3
+    set:
+      environment: Production
+      autoscaling:
+        enabled: false
+      replicaCount: 3
+      httpRoute:
+        create: false
+    asserts:
+      - hasDocuments:
+          count: 1
+      - equal:
+          path: spec.maxUnavailable
+          value: 2
+
+  - it: should use autoscaling.minReplicas for maxUnavailable when autoscaling enabled
+    set:
+      environment: Production
+      autoscaling:
+        enabled: true
+        minReplicas: 4
+        maxReplicas: 8
+      replicaCount: 1
+      httpRoute:
+        create: false
+    asserts:
+      - hasDocuments:
+          count: 1
+      - equal:
+          path: spec.maxUnavailable
+          value: 3
+
+  - it: should be case-insensitive for environment production (lowercase)
+    set:
+      environment: production
+      autoscaling:
+        enabled: false
+      replicaCount: 2
+      httpRoute:
+        create: false
+    asserts:
+      - hasDocuments:
+          count: 1
+
+  - it: should be case-insensitive for environment PRODUCTION (uppercase)
+    set:
+      environment: PRODUCTION
+      autoscaling:
+        enabled: false
+      replicaCount: 2
+      httpRoute:
+        create: false
+    asserts:
+      - hasDocuments:
+          count: 1
+
+  - it: should use existingSelectors when migration.existingSelectors.enabled is true
+    set:
+      environment: Production
+      autoscaling:
+        enabled: false
+      replicaCount: 2
+      httpRoute:
+        create: false
+      migration:
+        existingSelectors:
+          enabled: true
+          selectors:
+            app: my-app
+            version: v1
+    asserts:
+      - hasDocuments:
+          count: 1
+      - equal:
+          path: spec.selector.matchLabels
+          value:
+            app: my-app
+            version: v1
+
+  - it: should use standard selector labels when migration.existingSelectors is disabled
+    set:
+      environment: Production
+      autoscaling:
+        enabled: false
+      replicaCount: 2
+      httpRoute:
+        create: false
+    asserts:
+      - equal:
           path: spec.selector.matchLabels
           value:
             app.kubernetes.io/name: aspnetcore
             app.kubernetes.io/instance: RELEASE-NAME
-
-  - it: should create PDB with correct minAvailable when specified
-    set:
-      replicaCount: 3
-      podDisruptionBudget:
-        minAvailable: 2
-    asserts:
-      - hasDocuments:
-          count: 1
-      - isKind:
-          of: PodDisruptionBudget
-      - equal:
-          path: spec.minAvailable
-          value: 2
-
-  - it: should create PDB with percentage minAvailable
-    set:
-      replicaCount: 4
-      podDisruptionBudget:
-        minAvailable: "50%"
-    asserts:
-      - hasDocuments:
-          count: 1
-      - isKind:
-          of: PodDisruptionBudget
-      - equal:
-          path: spec.minAvailable
-          value: "50%"

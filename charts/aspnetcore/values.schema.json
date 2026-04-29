@@ -339,28 +339,6 @@
       },
       "additionalProperties": false
     },
-    "podDisruptionBudget": {
-      "type": "object",
-      "properties": {
-        "minAvailable": {
-          "oneOf": [
-            {
-              "type": "integer",
-              "minimum": 1,
-              "description": "The number of pods from that set that must still be available after the eviction. Must be less than replicaCount to avoid deployment deadlocks."
-            },
-            {
-              "type": "string",
-              "pattern": "^\\d+%$",
-              "description": "The percentage of pods from that set that must still be available after the eviction. Must result in a value less than replicaCount."
-            }
-          ],
-          "default": 1,
-          "description": "The number of pods from that set that must still be available after the eviction. IMPORTANT: This value must be less than replicaCount to prevent deployment deadlocks during cluster maintenance."
-        }
-      },
-      "additionalProperties": false
-    },
     "autoscaling": {
       "type": "object",
       "properties": {

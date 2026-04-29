@@ -11,6 +11,7 @@ tests:
   - it: should create all resources with common configuration
     set:
       replicaCount: 3
+      environment: Production
       commonLabels:
         environment: "production"
         app: "my-app"
@@ -66,7 +67,7 @@ tests:
           value: "production"
         template: httproute.yaml
 
-      # PDB should exist (replicaCount > 1)
+      # PDB should exist (environment=Production, autoscaling.minReplicas > 1)
       - hasDocuments:
           count: 1
         template: poddisruptionbudget.yaml
@@ -125,7 +126,7 @@ tests:
           count: 0
         template: httproute.yaml
 
-      # PDB should not exist (replicaCount = 1)
+      # PDB should not exist (environment=Development)
       - hasDocuments:
           count: 0
         template: poddisruptionbudget.yaml
