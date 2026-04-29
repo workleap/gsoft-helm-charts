@@ -14,19 +14,17 @@ podDisruptionBudget:
 
 **After (v5):** Remove the `podDisruptionBudget:` block entirely.
 
-The chart now creates a PDB **only when `environment` is `Production`**. The budget is always `maxUnavailable: "50%"`, which allows half the pods to be evicted at a time — scales with replica count while keeping at least half available.
+A PDB is created **only when `environment: Production`**. The budget is `maxUnavailable: "50%"` — up to half the pods can be evicted at a time, keeping at least half available. No PDB is created for `Development`, `Staging`, or `DR` environments.
 
-No PDB is created for non-production environments (Development, Staging, etc.).
-
-**New validation:** The chart fails with an error if `environment: Production` and effective replicas ≤ 1. Production deployments must run at least 2 replicas.
+**New validation:** The chart fails at render time if `environment: Production` and effective replicas ≤ 1. Production deployments must run at least 2 replicas (`replicaCount ≥ 2` or `autoscaling.minReplicas ≥ 2`).
 
 ### environment enum (breaking change)
 
-The `environment` value is now restricted to `Development`, `Staging`, or `Production`. Any other value will fail schema validation.
+The `environment` value is now restricted to four canonical values. Any other value fails schema validation.
 
 **Before (v4):** any string was accepted (e.g. `environment: dev`, `environment: prod`, `environment: QA`).
 
-**After (v5):** only the four canonical values are valid:
+**After (v5):**
 ```yaml
 environment: Development  # default
 environment: Staging
@@ -34,11 +32,12 @@ environment: Production
 environment: DR
 ```
 
-**Migration steps:**
-1. Remove `podDisruptionBudget:` from your values.
-2. Replace any non-standard `environment` values with the closest canonical equivalent.
+### Migration steps
+
+1. Remove the `podDisruptionBudget:` block from your values.
+2. Replace any non-standard `environment` value with the closest canonical equivalent.
 3. Ensure `environment: Production` is set for production deployments.
-4. Ensure `replicaCount ≥ 2` (or `autoscaling.minReplicas ≥ 2`) for production.
+4. Ensure `replicaCount ≥ 2` (or `autoscaling.minReplicas ≥ 2`) for production deployments.
 
 
 ## v3 → v4
