@@ -12,9 +12,9 @@ app.kubernetes.io/version: {{ .Values.image.tag | quote }}
 app.kubernetes.io/managed-by: {{ .Release.Service }}
 {{- end }}
 
-{{/* Returns truthy when environment is Production */}}
-{{- define "aspnetcore.isProduction" -}}
-{{- if eq .Values.environment "Production" -}}true{{- end -}}
+{{/* Returns truthy for environments that require a PDB (Production, DR) */}}
+{{- define "aspnetcore.requiresPDB" -}}
+{{- if or (eq .Values.environment "Production") (eq .Values.environment "DR") -}}true{{- end -}}
 {{- end }}
 
 {{/* Dynamic service account name */}}

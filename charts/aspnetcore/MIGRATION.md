@@ -14,9 +14,9 @@ podDisruptionBudget:
 
 **After (v5):** Remove the `podDisruptionBudget:` block entirely.
 
-A PDB is created **only when `environment: Production`**. The budget is `maxUnavailable: "50%"` — up to half the pods can be evicted at a time, keeping at least half available. No PDB is created for `Development`, `Staging`, or `DR` environments.
+A PDB is created for `Production` and `DR` environments. The budget is `maxUnavailable: "50%"` — up to half the pods can be evicted at a time, keeping at least half available. No PDB is created for `Development` or `Staging`.
 
-**New validation:** The chart fails at render time if `environment: Production` and effective replicas ≤ 1. Production deployments must run at least 2 replicas (`replicaCount ≥ 2` or `autoscaling.minReplicas ≥ 2`).
+**New validation:** The chart fails at render time if `environment` is `Production` or `DR` and effective replicas ≤ 1. These deployments must run at least 2 replicas (`replicaCount ≥ 2` or `autoscaling.minReplicas ≥ 2`).
 
 ### environment enum (breaking change)
 

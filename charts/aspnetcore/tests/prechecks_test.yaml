@@ -13,7 +13,7 @@ tests:
           - name: gateway
     asserts:
       - failedTemplate:
-          errorMessage: production deployments require replicaCount > 1 (or autoscaling.minReplicas > 1)
+          errorMessage: Production and DR deployments require replicaCount > 1 (or autoscaling.minReplicas > 1)
 
   - it: should fail when production environment has autoscaling.minReplicas 1
     set:
@@ -27,7 +27,7 @@ tests:
           - name: gateway
     asserts:
       - failedTemplate:
-          errorMessage: production deployments require replicaCount > 1 (or autoscaling.minReplicas > 1)
+          errorMessage: Production and DR deployments require replicaCount > 1 (or autoscaling.minReplicas > 1)
 
   - it: should pass when production environment has replicaCount 2
     set:
@@ -53,6 +53,19 @@ tests:
     asserts:
       - hasDocuments:
           count: 0
+
+  - it: should fail when DR environment has replicaCount 1
+    set:
+      environment: DR
+      autoscaling:
+        enabled: false
+      replicaCount: 1
+      httpRoute:
+        parentRefs:
+          - name: gateway
+    asserts:
+      - failedTemplate:
+          errorMessage: Production and DR deployments require replicaCount > 1 (or autoscaling.minReplicas > 1)
 
   - it: should fail when httpRoute.create is true without parentRefs
     set:

@@ -48,13 +48,13 @@ tests/prechecks/autoscaling-valid:
 
 # Test production with replicaCount=1 should fail
 tests/prechecks/production-single-replica-invalid: export TEST_DISPLAY_NAME="Validation should reject production environment with single replica"
-tests/prechecks/production-single-replica-invalid: export EXPECTED_ERROR_MESSAGE="production deployments require replicaCount > 1"
+tests/prechecks/production-single-replica-invalid: export EXPECTED_ERROR_MESSAGE="Production and DR deployments require replicaCount > 1"
 tests/prechecks/production-single-replica-invalid:
 	@${HELM_TEMPLATE} --set environment=Production --set autoscaling.enabled=false --set replicaCount=1 ${SHOULD_FAIL_WITH_ERROR_AND_THEN} ${DISPLAY_RESULT}
 
 # Test production with autoscaling.minReplicas=1 should fail
 tests/prechecks/production-autoscaling-single-replica-invalid: export TEST_DISPLAY_NAME="Validation should reject production environment with autoscaling.minReplicas=1"
-tests/prechecks/production-autoscaling-single-replica-invalid: export EXPECTED_ERROR_MESSAGE="production deployments require replicaCount > 1"
+tests/prechecks/production-autoscaling-single-replica-invalid: export EXPECTED_ERROR_MESSAGE="Production and DR deployments require replicaCount > 1"
 tests/prechecks/production-autoscaling-single-replica-invalid:
 	@${HELM_TEMPLATE} --set environment=Production --set autoscaling.enabled=true --set autoscaling.minReplicas=1 ${SHOULD_FAIL_WITH_ERROR_AND_THEN} ${DISPLAY_RESULT}
 

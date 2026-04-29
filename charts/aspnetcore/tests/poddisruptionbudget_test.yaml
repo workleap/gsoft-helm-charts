@@ -13,6 +13,18 @@ tests:
       - hasDocuments:
           count: 0
 
+  - it: should not be created when environment is Staging
+    set:
+      environment: Staging
+      autoscaling:
+        enabled: false
+      replicaCount: 3
+      httpRoute:
+        create: false
+    asserts:
+      - hasDocuments:
+          count: 0
+
   - it: should not be created when environment is Production but replicas == 1
     set:
       environment: Production
@@ -76,6 +88,33 @@ tests:
       - equal:
           path: spec.maxUnavailable
           value: "50%"
+
+  - it: should create PDB when environment is DR
+    set:
+      environment: DR
+      autoscaling:
+        enabled: false
+      replicaCount: 2
+      httpRoute:
+        create: false
+    asserts:
+      - hasDocuments:
+          count: 1
+      - equal:
+          path: spec.maxUnavailable
+          value: "50%"
+
+  - it: should not be created when environment is DR but replicas == 1
+    set:
+      environment: DR
+      autoscaling:
+        enabled: false
+      replicaCount: 1
+      httpRoute:
+        create: false
+    asserts:
+      - hasDocuments:
+          count: 0
 
   - it: should use existingSelectors when migration.existingSelectors.enabled is true
     set:
