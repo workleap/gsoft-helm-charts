@@ -298,3 +298,71 @@ tests:
       - equal:
           path: spec.template.spec.containers[0].startupProbe.failureThreshold
           value: 10
+
+  - it: should default containerPort to 8080
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].ports[0].name
+          value: http
+      - equal:
+          path: spec.template.spec.containers[0].ports[0].containerPort
+          value: 8080
+
+  - it: should respect a custom image.containerPort
+    set:
+      image:
+        containerPort: 3000
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].ports[0].containerPort
+          value: 3000
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: ASPNETCORE_URLS
+            value: "http://+:3000"
+
+  - it: should inject DOTNET_ENVIRONMENT and ASPNETCORE_URLS by default
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: DOTNET_ENVIRONMENT
+            value: "Development"
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: ASPNETCORE_URLS
+            value: "http://+:8080"
+
+  - it: should not inject DOTNET_* env vars when aspnetcore.injectEnvVars is false
+    set:
+      aspnetcore:
+        injectEnvVars: false
+      extraEnvVars:
+        - name: TEST_VAR
+          value: "kept"
+    asserts:
+      - notContains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: DOTNET_ENVIRONMENT
+            value: "Development"
+      - notContains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: ASPNETCORE_URLS
+            value: "http://+:8080"
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: TEST_VAR
+            value: "kept"
+
+  - it: should omit env block entirely when injectEnvVars is false and extraEnvVars is empty
+    set:
+      aspnetcore:
+        injectEnvVars: false
+    asserts:
+      - notExists:
+          path: spec.template.spec.containers[0].env

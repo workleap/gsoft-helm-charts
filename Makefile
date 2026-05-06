@@ -201,6 +201,31 @@ tests/schema/autoscaling-cpu-target-too-high: export EXPECTED_ERROR_MESSAGE="(ta
 tests/schema/autoscaling-cpu-target-too-high:
 	@${HELM_TEMPLATE} --set autoscaling.targetCPUUtilizationPercentage=101 ${SHOULD_FAIL_WITH_ERROR_AND_THEN} ${DISPLAY_RESULT}
 
+# Test image.containerPort minimum validation (should fail with 0)
+tests/schema/image-containerport-zero: export TEST_DISPLAY_NAME="Schema should reject image.containerPort=0"
+tests/schema/image-containerport-zero: export EXPECTED_ERROR_MESSAGE="(containerPort.*minimum|Must be greater than or equal to 1)"
+tests/schema/image-containerport-zero:
+	@${HELM_TEMPLATE} --set image.containerPort=0 ${SHOULD_FAIL_WITH_ERROR_AND_THEN} ${DISPLAY_RESULT}
+
+# Test image.containerPort maximum validation (should fail with 70000)
+tests/schema/image-containerport-too-high: export TEST_DISPLAY_NAME="Schema should reject image.containerPort greater than 65535"
+tests/schema/image-containerport-too-high: export EXPECTED_ERROR_MESSAGE="(containerPort.*maximum|Must be less than or equal to 65535)"
+tests/schema/image-containerport-too-high:
+	@${HELM_TEMPLATE} --set image.containerPort=70000 ${SHOULD_FAIL_WITH_ERROR_AND_THEN} ${DISPLAY_RESULT}
+
+# Test image.containerPort accepts a non-default valid value
+tests/schema/image-containerport-valid: export TEST_DISPLAY_NAME="Schema should accept a custom image.containerPort"
+tests/schema/image-containerport-valid:
+	@${HELM_TEMPLATE} --set image.containerPort=3000 ${SHOULD_SUCCEED_AND_THEN} ${DISPLAY_RESULT}
+
+# Test aspnetcore.injectEnvVars=false suppresses DOTNET_* env vars.
+# Captures output first so that a `helm template` failure propagates (a pipe to grep would mask it),
+# then asserts non-presence with an explicit negative check.
+tests/schema/aspnetcore-injectenvvars-false: export TEST_DISPLAY_NAME="Disabling injectEnvVars should suppress DOTNET_* env vars"
+tests/schema/aspnetcore-injectenvvars-false:
+	@OUT="$$(${HELM_TEMPLATE} --set aspnetcore.injectEnvVars=false 2>&1)" && \
+		! echo "$$OUT" | grep -q 'DOTNET_ENVIRONMENT' && ${DISPLAY_RESULT}
+
 # Test extraEnvVars missing required name field (should fail)
 tests/schema/extraenvvars-missing-name: export TEST_DISPLAY_NAME="Schema should require name field in extraEnvVars"
 tests/schema/extraenvvars-missing-name: export EXPECTED_ERROR_MESSAGE="(extraEnvVars.*missing property.*name)"

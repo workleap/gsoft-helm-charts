@@ -16,7 +16,7 @@ tests:
         template: service.yaml
       - equal:
           path: metadata.labels["helm.sh/chart"]
-          value: "aspnetcore-5.0.0"
+          value: "aspnetcore-5.1.0"
         template: service.yaml
       - equal:
           path: metadata.labels["app.kubernetes.io/name"]
@@ -75,7 +75,7 @@ tests:
     asserts:
       - equal:
           path: metadata.labels["helm.sh/chart"]
-          value: "aspnetcore-5.0.0"
+          value: "aspnetcore-5.1.0"
         template: serviceaccount.yaml
       - equal:
           path: metadata.labels["app.kubernetes.io/name"]
@@ -99,7 +99,7 @@ tests:
         template: httproute.yaml
       - equal:
           path: metadata.labels["helm.sh/chart"]
-          value: "aspnetcore-5.0.0"
+          value: "aspnetcore-5.1.0"
         template: httproute.yaml
       - equal:
           path: metadata.labels["app.kubernetes.io/name"]

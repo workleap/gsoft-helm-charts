@@ -130,3 +130,29 @@ jobs:
       - name: Describe test pod
         run: kubectl describe pods --namespace test
         if: always()
+
+      - name: Create non-.NET smoke namespace
+        run: kubectl create namespace nondotnet
+
+      - name: Template Helm chart (non-.NET smoke)
+        run: helm template aspnetcore-nondotnet ./charts/aspnetcore/ --namespace nondotnet --values ./charts/aspnetcore/tests/values-nondotnet.yaml --debug
+
+      - name: Install Helm chart (non-.NET smoke)
+        run: helm install aspnetcore-nondotnet ./charts/aspnetcore/ --namespace nondotnet --values ./charts/aspnetcore/tests/values-nondotnet.yaml --debug --wait
+
+      - name: Show non-.NET resources
+        run: kubectl get all --namespace nondotnet
+        if: always()
+
+      - name: Describe non-.NET test pod
+        run: kubectl describe pods --namespace nondotnet
+        if: always()
+
+      - name: Verify DOTNET_* env vars are absent
+        run: |
+          POD=$(kubectl get pod --namespace nondotnet -l app.kubernetes.io/name=aspnetcore -o jsonpath='{.items[0].metadata.name}')
+          if kubectl exec --namespace nondotnet "$POD" -- env | grep -E '^(DOTNET_ENVIRONMENT|ASPNETCORE_URLS)='; then
+            echo "ERROR: ASP.NET env vars leaked into non-.NET pod"
+            exit 1
+          fi
+          echo "OK: no DOTNET_* env vars present in non-.NET pod"

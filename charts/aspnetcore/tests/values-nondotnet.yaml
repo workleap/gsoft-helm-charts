@@ -1,0 +1,36 @@
+# Smoke-test values for a non-.NET workload (FENG-2321).
+# Uses mendhak/http-https-echo (Node/TypeScript HTTP echo server) on a non-default port,
+# with ASP.NET-specific env injection disabled.
+image:
+  registry: docker.io
+  repository: mendhak/http-https-echo
+  tag: "40"
+  pullPolicy: IfNotPresent
+  containerPort: 3000
+
+aspnetcore:
+  injectEnvVars: false
+
+httpRoute:
+  create: false
+
+extraEnvVars:
+  - name: HTTP_PORT
+    value: "3000"
+
+readinessProbe:
+  httpGet:
+    path: /
+    port: http
+  initialDelaySeconds: 5
+  periodSeconds: 5
+  failureThreshold: 3
+
+livenessProbe:
+  httpGet:
+    path: /
+    port: http
+  initialDelaySeconds: 5
+  periodSeconds: 5
+  timeoutSeconds: 5
+  failureThreshold: 3
