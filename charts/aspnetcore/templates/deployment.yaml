@@ -77,15 +77,19 @@ spec:
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           ports:
             - name: http
-              containerPort: 8080
+              containerPort: {{ .Values.image.containerPort }}
+          {{- if or .Values.aspnetcore.injectEnvVars .Values.extraEnvVars }}
           env:
+          {{- if .Values.aspnetcore.injectEnvVars }}
             - name: DOTNET_ENVIRONMENT
               value: {{ .Values.environment | quote }}
             - name: ASPNETCORE_URLS
-              value: "http://+:8080"
+              value: {{ printf "http://+:%d" (int .Values.image.containerPort) | quote }}
+          {{- end }}
           {{- range .Values.extraEnvVars }}
             - name: {{ .name }}
               value: {{ .value | quote }}
+          {{- end }}
           {{- end }}
           resources:
             {{- toYaml .Values.resources | nindent 12 }}

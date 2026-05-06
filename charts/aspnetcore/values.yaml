@@ -23,12 +23,20 @@ commonAnnotations: {}
 ## @param image.repository ASP.NET Core image repository
 ## @param image.tag ASP.NET Core image tag (immutable tags are recommended)
 ## @param image.pullPolicy ASP.NET Core image pull policy
+## @param image.containerPort Container port the workload listens on
 ##
 image:
   registry: mcr.microsoft.com
   repository: dotnet/samples
   tag: aspnetapp
   pullPolicy: IfNotPresent
+  containerPort: 8080
+
+## ASP.NET Core specific behavior
+## @param aspnetcore.injectEnvVars Inject DOTNET_ENVIRONMENT and ASPNETCORE_URLS env vars into the container. Set to false for non-.NET workloads.
+##
+aspnetcore:
+  injectEnvVars: true
 
 ## ASP.NET Core Service parameters.
 ## @param service.name Name of the service, automatically generated from the release name if not specified
