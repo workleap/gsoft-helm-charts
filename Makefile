@@ -218,10 +218,13 @@ tests/schema/image-containerport-valid: export TEST_DISPLAY_NAME="Schema should 
 tests/schema/image-containerport-valid:
 	@${HELM_TEMPLATE} --set image.containerPort=3000 ${SHOULD_SUCCEED_AND_THEN} ${DISPLAY_RESULT}
 
-# Test aspnetcore.injectEnvVars=false suppresses DOTNET_* env vars
+# Test aspnetcore.injectEnvVars=false suppresses DOTNET_* env vars.
+# Captures output first so that a `helm template` failure propagates (a pipe to grep would mask it),
+# then asserts non-presence with an explicit negative check.
 tests/schema/aspnetcore-injectenvvars-false: export TEST_DISPLAY_NAME="Disabling injectEnvVars should suppress DOTNET_* env vars"
 tests/schema/aspnetcore-injectenvvars-false:
-	@${HELM_TEMPLATE} --set aspnetcore.injectEnvVars=false 2>&1 | grep -q -v 'DOTNET_ENVIRONMENT' && ${DISPLAY_RESULT}
+	@OUT="$$(${HELM_TEMPLATE} --set aspnetcore.injectEnvVars=false 2>&1)" && \
+		! echo "$$OUT" | grep -q 'DOTNET_ENVIRONMENT' && ${DISPLAY_RESULT}
 
 # Test extraEnvVars missing required name field (should fail)
 tests/schema/extraenvvars-missing-name: export TEST_DISPLAY_NAME="Schema should require name field in extraEnvVars"
