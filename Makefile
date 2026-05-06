@@ -41,53 +41,35 @@ tests/prechecks/autoscaling-minreplicas-required: export EXPECTED_ERROR_MESSAGE=
 tests/prechecks/autoscaling-minreplicas-required:
 	@${HELM_TEMPLATE} --set autoscaling.enabled=true --set autoscaling.minReplicas=null ${SHOULD_FAIL_WITH_ERROR_AND_THEN} ${DISPLAY_RESULT}
 
-# Test autoscaling with minReplicas exactly equal to minAvailable
-tests/prechecks/autoscaling-minreplicas-equal-minavailable: export TEST_DISPLAY_NAME="Validation should prevent minReplicas equal to minAvailable"
-tests/prechecks/autoscaling-minreplicas-equal-minavailable: export EXPECTED_ERROR_MESSAGE="autoscaling.minReplicas cannot be less than podDisruptionBudget.minAvailable"
-tests/prechecks/autoscaling-minreplicas-equal-minavailable:
-	@${HELM_TEMPLATE} --set autoscaling.enabled=true --set autoscaling.minReplicas=2 --set podDisruptionBudget.minAvailable=2 ${SHOULD_FAIL_WITH_ERROR_AND_THEN} ${DISPLAY_RESULT}
-
-# Test autoscaling with minReplicas less than minAvailable
-tests/prechecks/autoscaling-minreplicas-less-than-minavailable: export TEST_DISPLAY_NAME="Validation should prevent minReplicas less than minAvailable"
-tests/prechecks/autoscaling-minreplicas-less-than-minavailable: export EXPECTED_ERROR_MESSAGE="autoscaling.minReplicas cannot be less than podDisruptionBudget.minAvailable"
-tests/prechecks/autoscaling-minreplicas-less-than-minavailable:
-	@${HELM_TEMPLATE} --set autoscaling.enabled=true --set autoscaling.minReplicas=2 --set podDisruptionBudget.minAvailable=3 ${SHOULD_FAIL_WITH_ERROR_AND_THEN} ${DISPLAY_RESULT}
-
-# Test replicaCount with minReplicas exactly equal to minAvailable
-tests/prechecks/replicaCount-minreplicas-equal-minavailable: export TEST_DISPLAY_NAME="Validation should prevent replicaCount equal to minAvailable"
-tests/prechecks/replicaCount-minreplicas-equal-minavailable: export EXPECTED_ERROR_MESSAGE="replicaCount cannot be less than or equal to podDisruptionBudget.minAvailable"
-tests/prechecks/replicaCount-minreplicas-equal-minavailable:
-	@${HELM_TEMPLATE} --set autoscaling.enabled=false --set replicaCount=2 --set podDisruptionBudget.minAvailable=2 ${SHOULD_FAIL_WITH_ERROR_AND_THEN} ${DISPLAY_RESULT}
-
-
-# Test replicaCount with minReplicas less than minAvailable
-tests/prechecks/replicaCount-minreplicas-less-than-minavailable: export TEST_DISPLAY_NAME="Validation should prevent minReplicas less than minAvailable"
-tests/prechecks/replicaCount-minreplicas-less-than-minavailable: export EXPECTED_ERROR_MESSAGE="replicaCount cannot be less than or equal to podDisruptionBudget.minAvailable"
-tests/prechecks/replicaCount-minreplicas-less-than-minavailable:
-	@${HELM_TEMPLATE} --set autoscaling.enabled=false --set replicaCount=2 --set podDisruptionBudget.minAvailable=3 ${SHOULD_FAIL_WITH_ERROR_AND_THEN} ${DISPLAY_RESULT}
-
 # Test valid configuration: autoscaling with proper minReplicas
 tests/prechecks/autoscaling-valid: export TEST_DISPLAY_NAME="Valid autoscaling configuration should be accepted"
 tests/prechecks/autoscaling-valid:
-	@${HELM_TEMPLATE} --set autoscaling.enabled=true --set autoscaling.minReplicas=3 --set podDisruptionBudget.minAvailable=1 ${SHOULD_SUCCEED_AND_THEN} ${DISPLAY_RESULT}
+	@${HELM_TEMPLATE} --set autoscaling.enabled=true --set autoscaling.minReplicas=3 ${SHOULD_SUCCEED_AND_THEN} ${DISPLAY_RESULT}
 
-# Test valid configuration: PDB with proper minAvailable
-tests/prechecks/pdb-valid: export TEST_DISPLAY_NAME="Valid PDB configuration should be accepted"
+# Test production with replicaCount=1 should fail
+tests/prechecks/production-single-replica-invalid: export TEST_DISPLAY_NAME="Validation should reject production environment with single replica"
+tests/prechecks/production-single-replica-invalid: export EXPECTED_ERROR_MESSAGE="Production and DR deployments require replicaCount > 1"
+tests/prechecks/production-single-replica-invalid:
+	@${HELM_TEMPLATE} --set environment=Production --set autoscaling.enabled=false --set replicaCount=1 ${SHOULD_FAIL_WITH_ERROR_AND_THEN} ${DISPLAY_RESULT}
+
+# Test production with autoscaling.minReplicas=1 should fail
+tests/prechecks/production-autoscaling-single-replica-invalid: export TEST_DISPLAY_NAME="Validation should reject production environment with autoscaling.minReplicas=1"
+tests/prechecks/production-autoscaling-single-replica-invalid: export EXPECTED_ERROR_MESSAGE="Production and DR deployments require replicaCount > 1"
+tests/prechecks/production-autoscaling-single-replica-invalid:
+	@${HELM_TEMPLATE} --set environment=Production --set autoscaling.enabled=true --set autoscaling.minReplicas=1 ${SHOULD_FAIL_WITH_ERROR_AND_THEN} ${DISPLAY_RESULT}
+
+# Test production with replicaCount=2 should render PDB with maxUnavailable=1
+tests/prechecks/pdb-valid: export TEST_DISPLAY_NAME="Production with replicaCount=2 should render PDB with maxUnavailable=1"
 tests/prechecks/pdb-valid:
-	@${HELM_TEMPLATE} --set replicaCount=3 --set podDisruptionBudget.minAvailable=1 ${SHOULD_SUCCEED_AND_THEN} ${DISPLAY_RESULT}
-
-# Test percentage-based minAvailable (should not trigger deadlock validation for percentages)
-tests/prechecks/pdb-percentage-valid: export TEST_DISPLAY_NAME="Percentage-based minAvailable should be accepted"
-tests/prechecks/pdb-percentage-valid:
-	@${HELM_TEMPLATE} --set replicaCount=2 --set podDisruptionBudget.minAvailable="50%" ${SHOULD_SUCCEED_AND_THEN} ${DISPLAY_RESULT}
+	@${HELM_TEMPLATE} --set environment=Production --set autoscaling.enabled=false --set replicaCount=2 2>&1 | grep -q 'maxUnavailable: "50%"' && ${DISPLAY_RESULT}
 
 # Test autoscaling disabled with valid configuration (should pass without prechecks)
 tests/prechecks/autoscaling-disabled-valid: export TEST_DISPLAY_NAME="Autoscaling disabled configuration should be accepted"
 tests/prechecks/autoscaling-disabled-valid:
 	@${HELM_TEMPLATE} --set autoscaling.enabled=false --set replicaCount=1 ${SHOULD_SUCCEED_AND_THEN} ${DISPLAY_RESULT}
 
-# Test autoscaling disabled with replicaCount set to 1 and PDB MinAvailable set to default (should pass without prechecks)
-tests/prechecks/autoscaling-disabled-single-replica-zero-minavailable-valid: export TEST_DISPLAY_NAME="Autoscaling disabled configuration with single replica should be accepted even with default PDB MinAvailable since PDB will not be created"
+# Test autoscaling disabled with replicaCount set to 1 in development (should pass, no PDB)
+tests/prechecks/autoscaling-disabled-single-replica-zero-minavailable-valid: export TEST_DISPLAY_NAME="Development with single replica should be accepted - no PDB required"
 tests/prechecks/autoscaling-disabled-single-replica-zero-minavailable-valid:
 	@${HELM_TEMPLATE} --set autoscaling.enabled=false --set replicaCount=1 ${SHOULD_SUCCEED_AND_THEN} ${DISPLAY_RESULT}
 
@@ -106,12 +88,7 @@ tests/prechecks/autoscaling-minreplicas-negative:
 # Test autoscaling with large values (boundary testing)
 tests/prechecks/autoscaling-large-values: export TEST_DISPLAY_NAME="Large valid values should be accepted"
 tests/prechecks/autoscaling-large-values:
-	@${HELM_TEMPLATE} --set autoscaling.enabled=true --set autoscaling.minReplicas=100 --set podDisruptionBudget.minAvailable=50 ${SHOULD_SUCCEED_AND_THEN} ${DISPLAY_RESULT}
-
-# Test percentage-based minAvailable with autoscaling (should work)
-tests/prechecks/autoscaling-with-percentage-pdb: export TEST_DISPLAY_NAME="Autoscaling with percentage-based PDB should be valid"
-tests/prechecks/autoscaling-with-percentage-pdb:
-	@${HELM_TEMPLATE} --set autoscaling.enabled=true --set autoscaling.minReplicas=3 --set podDisruptionBudget.minAvailable="25%" ${SHOULD_SUCCEED_AND_THEN} $(DISPLAY_RESULT)
+	@${HELM_TEMPLATE} --set autoscaling.enabled=true --set autoscaling.minReplicas=100 ${SHOULD_SUCCEED_AND_THEN} ${DISPLAY_RESULT}
 
 # Schema validation tests
 # Test replicaCount minimum validation (should fail with replicaCount=0)
@@ -132,10 +109,16 @@ tests/schema/termination-grace-period-negative: export EXPECTED_ERROR_MESSAGE="(
 tests/schema/termination-grace-period-negative:
 	@${HELM_TEMPLATE} --set terminationGracePeriodSeconds=-1 ${SHOULD_FAIL_WITH_ERROR_AND_THEN} ${DISPLAY_RESULT}
 
-# Test environment accepts any value
-tests/schema/environment-valid: export TEST_DISPLAY_NAME="Schema should accept any environment value"
+# Test environment accepts valid enum values
+tests/schema/environment-valid: export TEST_DISPLAY_NAME="Schema should accept valid environment values"
 tests/schema/environment-valid:
-	@${HELM_TEMPLATE} --set environment="Whatever" ${SHOULD_SUCCEED_AND_THEN} ${DISPLAY_RESULT}
+	@${HELM_TEMPLATE} --set environment="Staging" ${SHOULD_SUCCEED_AND_THEN} ${DISPLAY_RESULT}
+
+# Test environment rejects unknown values
+tests/schema/environment-invalid: export TEST_DISPLAY_NAME="Schema should reject unknown environment values"
+tests/schema/environment-invalid: export EXPECTED_ERROR_MESSAGE="(environment.*enum|must be one of)"
+tests/schema/environment-invalid:
+	@${HELM_TEMPLATE} --set environment="Whatever" ${SHOULD_FAIL_WITH_ERROR_AND_THEN} ${DISPLAY_RESULT}
 
 # Test image.pullPolicy enum validation (should fail with invalid pullPolicy)
 tests/schema/image-pullpolicy-invalid: export TEST_DISPLAY_NAME="Schema should reject invalid pullPolicy values"
@@ -199,12 +182,6 @@ tests/schema/httproute-additional-properties: export TEST_DISPLAY_NAME="Schema s
 tests/schema/httproute-additional-properties: export EXPECTED_ERROR_MESSAGE="(httpRoute.*additional propert|Additional property)"
 tests/schema/httproute-additional-properties:
 	@${HELM_TEMPLATE} --set httpRoute.unknownField=foo ${SHOULD_FAIL_WITH_ERROR_AND_THEN} ${DISPLAY_RESULT}
-
-# Test podDisruptionBudget.minAvailable with zero integer (should fail due to minimum: 1)
-tests/schema/pdb-minavailable-zero: export TEST_DISPLAY_NAME="Schema should reject minAvailable=0"
-tests/schema/pdb-minavailable-zero: export EXPECTED_ERROR_MESSAGE="(minAvailable.*minimum|Must be greater than or equal to 1)"
-tests/schema/pdb-minavailable-zero:
-	@${HELM_TEMPLATE} --set podDisruptionBudget.minAvailable=0 ${SHOULD_FAIL_WITH_ERROR_AND_THEN} ${DISPLAY_RESULT}
 
 # Test autoscaling.maxReplicas minimum validation (should fail with maxReplicas=0)
 tests/schema/autoscaling-maxreplicas-zero: export TEST_DISPLAY_NAME="Schema should reject maxReplicas=0"

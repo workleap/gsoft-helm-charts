@@ -1,6 +1,6 @@
 ## @param replicaCount Number of ASP.NET Core replicas to deploy
 ##
-## We set this to 2 by default because the PodDisruptionBudget is set to minimum 1 running replica and having only one replica creates a deadlock while draining nodes during cluster upgrades
+## Production deployments require replicaCount > 1 (or autoscaling.minReplicas > 1) for a PDB to be created
 replicaCount: 2
 
 ## @param service.terminationGracePeriodSeconds The duration in seconds the pod needs to terminate gracefully
@@ -179,16 +179,11 @@ azureWorkloadIdentity:
   enabled: false
   clientId: ""
 
-## Pod Disruption Budget (https://kubernetes.io/docs/concepts/workloads/pods/disruptions/#pod-disruption-budgets)
-## @param podDisruptionBudget.minAvailable  The description of the number of pods from that set that must still be available after the eviction, even in the absence of the evicted pod
-podDisruptionBudget:
-  minAvailable: 1
-
 ## Autoscaling deployment settings
 ## ref: https://kubernetes.io/docs/tasks/run-application/horizontal-pod-autoscale/
-## @param autoscaling.enabled Default to false. Enable autoscaling
-## @param autoscaling.minReplicas Optional if PodDistributionBudget is set. Minimum number of ASP.NET Core replicas minimum is PodDisruptionBudget.minAvailable + 1
-## @param autoscaling.maxReplicas Optional if PodDistributionBudget is set or minReplicas is set. Maximum number of ASP.NET Core replicas minimum is minReplicas value.
+## @param autoscaling.enabled Default to true. Enable autoscaling
+## @param autoscaling.minReplicas Minimum number of ASP.NET Core replicas
+## @param autoscaling.maxReplicas Maximum number of ASP.NET Core replicas, minimum is minReplicas value.
 ## @param autoscaling.targetCPUUtilizationPercentage Target CPU utilization percentage for autoscaling
 autoscaling:
   enabled: true

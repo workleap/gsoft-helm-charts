@@ -13,7 +13,7 @@ aspnetcore:
       - name: platform-gateway
         namespace: istio-ingress
 
-  environment: stg
+  environment: Staging
 
   resources:
     limits:

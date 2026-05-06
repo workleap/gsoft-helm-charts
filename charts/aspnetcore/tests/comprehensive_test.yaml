@@ -42,8 +42,6 @@ tests:
         minReplicas: 2
         maxReplicas: 10
         targetCPUUtilizationPercentage: 70
-      podDisruptionBudget:
-        minAvailable: 1
       extraEnvVars:
         - name: "APP_ENV"
           value: "production"
@@ -125,7 +123,13 @@ tests:
 
   - it: should handle legacy migration configuration
     set:
+      environment: Production
+      autoscaling:
+        enabled: false
       replicaCount: 2
+      httpRoute:
+        parentRefs:
+          - name: gateway
       migration:
         existingSelectors:
           enabled: true

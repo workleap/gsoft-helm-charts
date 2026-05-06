@@ -4,15 +4,11 @@
 {{- if .Values.autoscaling.enabled }}
     {{- if not .Values.autoscaling.minReplicas }}
     {{- fail "autoscaling.minReplicas is required" }}
-    {{- else}}
-        {{- if le (int .Values.autoscaling.minReplicas) (int .Values.podDisruptionBudget.minAvailable) }}
-        {{- fail "autoscaling.minReplicas cannot be less than podDisruptionBudget.minAvailable" }}
-        {{- end }}
     {{- end }}
-{{- else}}
-    {{- if gt (int .Values.replicaCount) 1 }}
-        {{- if le (int .Values.replicaCount) (int .Values.podDisruptionBudget.minAvailable) }}
-        {{- fail "replicaCount cannot be less than or equal to podDisruptionBudget.minAvailable" }}
-        {{- end }}
+{{- end }}
+{{- if include "aspnetcore.requiresPDB" . }}
+    {{- $replicas := ternary (.Values.autoscaling.minReplicas | int) (.Values.replicaCount | int) .Values.autoscaling.enabled -}}
+    {{- if le $replicas 1 }}
+    {{- fail "Production and DR deployments require replicaCount > 1 (or autoscaling.minReplicas > 1)" }}
     {{- end }}
 {{- end }}
