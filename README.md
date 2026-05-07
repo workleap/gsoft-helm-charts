@@ -3,23 +3,37 @@
 This repository contains generic Helm charts available through GitHub Pages.
 
 
-## Generic Helm chart for ASP.NET Core
+## Generic Helm chart for ASP.NET Core (and other HTTP workloads)
 
-By default, this chart bootstraps the [official ASP.NET Core sample application](https://hub.docker.com/_/microsoft-dotnet-samples).
+Despite its name, the [`aspnetcore`](charts/aspnetcore/) chart is a workload-agnostic chart for any HTTP service. Its defaults are tuned for ASP.NET Core (it bootstraps the [official ASP.NET Core sample application](https://hub.docker.com/_/microsoft-dotnet-samples) by default), but two flags — `aspnetcore.injectEnvVars` and `image.containerPort` — make it equally usable for Node.js, Python, Go, or any other HTTP workload.
 
-Please read the documented [`charts/aspnetcore/values.yaml`](charts/aspnetcore/values.yaml) file to understand how to override default values in order to deploy your own ASP.NET Core application.
+The full reference for every value lives in [`charts/aspnetcore/values.yaml`](charts/aspnetcore/values.yaml).
 
 
-### Values Schema
+### Resources deployed
 
-The chart includes a JSON schema file [`charts/aspnetcore/values.schema.json`](charts/aspnetcore/values.schema.json) that defines the structure and validation rules for the values. This schema provides:
+The chart deploys the following resources:
 
-- Type validation for configuration values
-- Default values documentation
-- Property descriptions
-- Enum constraints where applicable
+| Resource                        | Created when                                                              | Notes                                                                                          |
+| ------------------------------- | ------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| `Deployment`                    | Always                                                                    | Single container, port `image.containerPort` (default `8080`).                                 |
+| `Service`                       | Always                                                                    | `ClusterIP` on `service.port` (default `80`), targets the container port.                      |
+| `HorizontalPodAutoscaler`       | `autoscaling.enabled` (default `true`)                                    | CPU-based; `minReplicas` / `maxReplicas` / `targetCPUUtilizationPercentage` configurable.      |
+| `HTTPRoute` (Gateway API)       | `httpRoute.create` (default `true`)                                       | Requires `httpRoute.parentRefs`. Replaces the NGINX `Ingress` from earlier majors.             |
+| `PodDisruptionBudget`           | Automatic in `Production` / `DR` when effective replicas > 1              | Fixed `maxUnavailable: 50%`. See [Automatic behaviors](#automatic-behaviors).                  |
+| `ServiceAccount`                | `serviceAccount.create` (default `false`)                                 | Supports Azure Workload Identity via `azureWorkloadIdentity.enabled` + `clientId`.             |
+| `AzureIdentityBinding`          | `aadPodIdentityBinding.create` (default `false`)                          | Deprecated — use Azure Workload Identity instead.                                              |
 
-> **Important**: When making changes to the values definition in `values.yaml`, ensure that the corresponding `values.schema.json` file is updated to maintain consistency and proper validation.
+
+### Automatic behaviors
+
+The chart applies a few opinionated defaults so callers don't have to reason about availability primitives manually.
+
+- **Environment enum validation.** `environment` must be one of `Development`, `Staging`, `Production`, `DR`. Helm fails the render on any other value (enforced via `values.schema.json`).
+- **Production / DR replica precheck.** If `environment` is `Production` or `DR` and effective replicas (autoscaling.minReplicas when HPA is enabled, otherwise `replicaCount`) are ≤ 1, the render fails with a clear message. This makes it impossible to accidentally ship a single-replica production workload.
+- **Automatic PodDisruptionBudget.** A `PodDisruptionBudget` with `maxUnavailable: 50%` is created automatically when `environment` is `Production` or `DR` and effective replicas > 1. No PDB is created in `Development` or `Staging`. There is no manual `podDisruptionBudget` block to configure.
+- **Default node-spread topology.** When `topologySpreadConstraints` is unset, the `presets.spreadAcrossNodes` preset (enabled by default) applies a best-effort `maxSkew: 1` constraint on `kubernetes.io/hostname`. Setting `topologySpreadConstraints` explicitly overrides the preset.
+- **Conditional .NET env injection.** When `aspnetcore.injectEnvVars` is `true` (default), the chart injects `DOTNET_ENVIRONMENT` (from `environment`) and `ASPNETCORE_URLS` (computed from `image.containerPort`) into the container. Set it to `false` for non-.NET workloads — the env block is omitted entirely if no `extraEnvVars` are provided either.
 
 
 ### Installing the chart
@@ -34,25 +48,122 @@ version: 1.0.0
 dependencies:
   - name: aspnetcore
     alias: aspnetcore
-    version: 3.1.0
+    version: 5.1.0
     repository: https://workleap.github.io/gsoft-helm-charts
 ```
 
-Then, in your `values.yaml` file, override the default values:
-
-```yaml
-aspnetcore:
-  image:
-    registry: your-registry.com
-    repository: your-repository
-
-# [...]
-```
-Finally, deploy your chart using the `--dependency-update` flag:
+Then, in your `values.yaml` file, override the default values (see the sections below). Finally, deploy your chart using the `--dependency-update` flag:
 
 ```bash
 helm upgrade --install --atomic --cleanup-on-fail --debug --dependency-update [...more options] ./your-chart/
 ```
+
+
+### ASP.NET Core usage
+
+A minimal `values.yaml` for an ASP.NET Core service:
+
+```yaml
+aspnetcore:
+  environment: Production
+  image:
+    registry: your-registry.com
+    repository: your-repository
+    tag: "1.0.0"
+  httpRoute:
+    hostname: api.example.com
+    parentRefs:
+      - name: shared-gateway
+        namespace: istio-system
+```
+
+`DOTNET_ENVIRONMENT` (set to `Production`) and `ASPNETCORE_URLS` (set to `http://+:8080`) are injected automatically — you do not need to configure them.
+
+
+### Non-.NET workloads
+
+For non-.NET workloads, disable the .NET env injection and set the container port your app listens on:
+
+```yaml
+aspnetcore:
+  aspnetcore:
+    injectEnvVars: false
+  image:
+    registry: your-registry.com
+    repository: your-repository
+    tag: "1.0.0"
+    containerPort: 3000
+```
+
+Callers typically also configure their own `readinessProbe` / `livenessProbe` and `extraEnvVars`. A full working example (Node.js HTTP echo server) is at [`charts/aspnetcore/tests/values-nondotnet.yaml`](charts/aspnetcore/tests/values-nondotnet.yaml).
+
+
+### Most-used values
+
+A curated reference for the values most commonly set. The full list — including probes, volumes, certificate store, security context, migration helpers, and more — is documented inline in [`charts/aspnetcore/values.yaml`](charts/aspnetcore/values.yaml).
+
+#### Image
+
+| Key                  | Default                  | Description                                                                 |
+| -------------------- | ------------------------ | --------------------------------------------------------------------------- |
+| `image.registry`     | `mcr.microsoft.com`      | Image registry.                                                             |
+| `image.repository`   | `dotnet/samples`         | Image repository.                                                           |
+| `image.tag`          | `aspnetapp`              | Image tag (immutable tags are recommended).                                 |
+| `image.pullPolicy`   | `IfNotPresent`           | Image pull policy.                                                          |
+| `image.containerPort`| `8080`                   | Port the container listens on. Used by the Service and `ASPNETCORE_URLS`.   |
+
+#### Workload
+
+| Key                          | Default       | Description                                                                                          |
+| ---------------------------- | ------------- | ---------------------------------------------------------------------------------------------------- |
+| `replicaCount`               | `2`           | Replicas when HPA is disabled. Required ≥ 2 in `Production` / `DR` (or use `autoscaling.minReplicas`). |
+| `environment`                | `Development` | One of `Development`, `Staging`, `Production`, `DR`. Drives PDB creation and `DOTNET_ENVIRONMENT`.   |
+| `aspnetcore.injectEnvVars`   | `true`        | Inject `DOTNET_ENVIRONMENT` and `ASPNETCORE_URLS`. Set `false` for non-.NET workloads.               |
+| `extraEnvVars`               | `[]`          | Additional env vars (`[{ name, value }]`).                                                            |
+| `resources`                  | see values    | Container requests/limits. Defaults: `50m` CPU request, `128Mi` memory request and limit.           |
+
+#### Networking
+
+| Key                       | Default                    | Description                                                                                                  |
+| ------------------------- | -------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| `service.port`            | `80`                       | Service port; targets the container port.                                                                    |
+| `httpRoute.create`        | `true`                     | Create the Gateway API `HTTPRoute`.                                                                          |
+| `httpRoute.hostname`      | `aspnetcore.example.local` | Hostname for the route.                                                                                      |
+| `httpRoute.parentRefs`    | `[]`                       | **Required when `create` is `true`.** List of parent Gateways (`name`, optional `namespace`, `sectionName`). |
+| `httpRoute.path`          | `/`                        | Default path match.                                                                                          |
+| `httpRoute.pathType`      | `PathPrefix`               | One of `Exact`, `PathPrefix`, `RegularExpression`.                                                            |
+| `httpRoute.timeout`       | `""`                       | Request timeout in Gateway API duration format (e.g. `60s`, `5m`). Empty uses the gateway/mesh defaults.     |
+
+#### Scaling and availability
+
+| Key                                            | Default | Description                                                                |
+| ---------------------------------------------- | ------- | -------------------------------------------------------------------------- |
+| `autoscaling.enabled`                          | `true`  | Create the `HorizontalPodAutoscaler`.                                       |
+| `autoscaling.minReplicas`                      | `2`     | Minimum replicas. Required when `autoscaling.enabled` is `true`.           |
+| `autoscaling.maxReplicas`                      | `3`     | Maximum replicas.                                                           |
+| `autoscaling.targetCPUUtilizationPercentage`   | `80`    | CPU utilization target.                                                     |
+
+PDB creation is automatic and not configurable via values — see [Automatic behaviors](#automatic-behaviors).
+
+#### Identity
+
+| Key                                | Default | Description                                                                                       |
+| ---------------------------------- | ------- | ------------------------------------------------------------------------------------------------- |
+| `serviceAccount.create`            | `false` | Create a `ServiceAccount`.                                                                        |
+| `azureWorkloadIdentity.enabled`    | `false` | Add Azure Workload Identity labels and annotations. Requires `serviceAccount.create: true`.       |
+| `azureWorkloadIdentity.clientId`   | `""`    | Azure AD application client ID for the workload identity.                                         |
+
+
+### Values schema
+
+The chart includes a JSON schema file [`charts/aspnetcore/values.schema.json`](charts/aspnetcore/values.schema.json) that defines the structure and validation rules for the values, including type validation, enum constraints (e.g. `environment`), and property descriptions.
+
+> **Important**: When making changes to the values definition in `values.yaml`, ensure that the corresponding `values.schema.json` file is updated to maintain consistency and proper validation.
+
+
+### Migration
+
+See [`charts/aspnetcore/MIGRATION.md`](charts/aspnetcore/MIGRATION.md) for upgrade notes between major versions.
 
 
 ## Release and versioning process
