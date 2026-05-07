@@ -30,7 +30,7 @@ The chart deploys the following resources:
 The chart applies a few opinionated defaults so callers don't have to reason about availability primitives manually.
 
 - **Environment enum validation.** `environment` must be one of `Development`, `Staging`, `Production`, `DR`. Helm fails the render on any other value (enforced via `values.schema.json`).
-- **Production / DR replica precheck.** If `environment` is `Production` or `DR` and effective replicas (autoscaling.minReplicas when HPA is enabled, otherwise `replicaCount`) are ≤ 1, the render fails with a clear message. This makes it impossible to accidentally ship a single-replica production workload.
+- **Production / DR replica precheck.** If `environment` is `Production` or `DR` and effective replicas (autoscaling.minReplicas when HPA is enabled, otherwise `replicaCount`) are ≤ 1, the render fails with a clear message. Note: the `Deployment.spec.replicas` is always set from `replicaCount`, so when HPA is enabled you should keep `replicaCount` ≥ `autoscaling.minReplicas` to avoid initially rolling out a single replica before the HPA reconciles.
 - **Automatic PodDisruptionBudget.** A `PodDisruptionBudget` with `maxUnavailable: 50%` is created automatically when `environment` is `Production` or `DR` and effective replicas > 1. No PDB is created in `Development` or `Staging`. There is no manual `podDisruptionBudget` block to configure.
 - **Default node-spread topology.** When `topologySpreadConstraints` is unset, the `presets.spreadAcrossNodes` preset (enabled by default) applies a best-effort `maxSkew: 1` constraint on `kubernetes.io/hostname`. Setting `topologySpreadConstraints` explicitly overrides the preset.
 - **Conditional .NET env injection.** When `aspnetcore.injectEnvVars` is `true` (default), the chart injects `DOTNET_ENVIRONMENT` (from `environment`) and `ASPNETCORE_URLS` (computed from `image.containerPort`) into the container. Set it to `false` for non-.NET workloads — the env block is omitted entirely if no `extraEnvVars` are provided either.
@@ -82,7 +82,7 @@ aspnetcore:
 
 ### Non-.NET workloads
 
-For non-.NET workloads, disable the .NET env injection and set the container port your app listens on:
+For non-.NET workloads, disable the .NET env injection and set the container port your app listens on. The chart still creates an `HTTPRoute` by default, so configure `httpRoute.parentRefs` (or set `httpRoute.create: false` if your routing is managed elsewhere):
 
 ```yaml
 aspnetcore:
@@ -93,6 +93,11 @@ aspnetcore:
     repository: your-repository
     tag: "1.0.0"
     containerPort: 3000
+  httpRoute:
+    hostname: api.example.com
+    parentRefs:
+      - name: shared-gateway
+        namespace: istio-system
 ```
 
 Callers typically also configure their own `readinessProbe` / `livenessProbe` and `extraEnvVars`. A full working example (Node.js HTTP echo server) is at [`charts/aspnetcore/tests/values-nondotnet.yaml`](charts/aspnetcore/tests/values-nondotnet.yaml).
@@ -119,7 +124,7 @@ A curated reference for the values most commonly set. The full list — includin
 | `replicaCount`               | `2`           | Replicas when HPA is disabled. Required ≥ 2 in `Production` / `DR` (or use `autoscaling.minReplicas`). |
 | `environment`                | `Development` | One of `Development`, `Staging`, `Production`, `DR`. Drives PDB creation and `DOTNET_ENVIRONMENT`.   |
 | `aspnetcore.injectEnvVars`   | `true`        | Inject `DOTNET_ENVIRONMENT` and `ASPNETCORE_URLS`. Set `false` for non-.NET workloads.               |
-| `extraEnvVars`               | `[]`          | Additional env vars (`[{ name, value }]`).                                                            |
+| `extraEnvVars`               | `[]`          | Additional env vars. Only `name` / `value` entries are rendered today (`valueFrom` is permitted by the schema but not emitted by the template). |
 | `resources`                  | see values    | Container requests/limits. Defaults: `50m` CPU request, `128Mi` memory request and limit.           |
 
 #### Networking
@@ -150,7 +155,7 @@ PDB creation is automatic and not configurable via values — see [Automatic beh
 | Key                                | Default | Description                                                                                       |
 | ---------------------------------- | ------- | ------------------------------------------------------------------------------------------------- |
 | `serviceAccount.create`            | `false` | Create a `ServiceAccount`.                                                                        |
-| `azureWorkloadIdentity.enabled`    | `false` | Add Azure Workload Identity labels and annotations. Requires `serviceAccount.create: true`.       |
+| `azureWorkloadIdentity.enabled`    | `false` | Add the `azure.workload.identity/use` pod label and (when `serviceAccount.create: true`) annotate the chart-managed ServiceAccount with the workload identity client ID. The chart's documented usage assumes `serviceAccount.create: true`. |
 | `azureWorkloadIdentity.clientId`   | `""`    | Azure AD application client ID for the workload identity.                                         |
 
 
