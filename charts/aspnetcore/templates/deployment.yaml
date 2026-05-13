@@ -42,10 +42,25 @@ spec:
         {{- toYaml . | nindent 8 }}
       {{- end }}
     spec:
+      {{- /*
+        Build effective pod-level securityContext by merging, in order:
+          1. presets.restrictedSecurityContext defaults (when enabled)
+          2. user-provided podSecurityContext (overrides preset)
+          3. sysctls (when securityContext.enabled)
+      */ -}}
+      {{- $podSC := dict }}
+      {{- if .Values.presets.restrictedSecurityContext.enabled }}
+        {{- $_ := set $podSC "runAsNonRoot" true }}
+      {{- end }}
+      {{- if .Values.podSecurityContext }}
+        {{- $podSC = mustMergeOverwrite $podSC .Values.podSecurityContext }}
+      {{- end }}
       {{- if .Values.securityContext.enabled }}
+        {{- $_ := set $podSC "sysctls" .Values.securityContext.sysctls }}
+      {{- end }}
+      {{- if $podSC }}
       securityContext:
-        sysctls:
-          {{- toYaml .Values.securityContext.sysctls | nindent 10 }}
+        {{- toYaml $podSC | nindent 8 }}
       {{- end }}
       {{- if .Values.topologySpreadConstraints }}
       topologySpreadConstraints:
@@ -75,6 +90,23 @@ spec:
         - name: {{ .Chart.Name }}-container
           image: "{{ .Values.image.registry }}/{{ .Values.image.repository }}:{{ .Values.image.tag }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
+          {{- /*
+            Build effective container-level securityContext by merging, in order:
+              1. presets.restrictedSecurityContext defaults (when enabled)
+              2. user-provided containerSecurityContext (overrides preset)
+          */ -}}
+          {{- $containerSC := dict }}
+          {{- if .Values.presets.restrictedSecurityContext.enabled }}
+            {{- $_ := set $containerSC "allowPrivilegeEscalation" false }}
+            {{- $_ := set $containerSC "capabilities" (dict "drop" (list "ALL")) }}
+          {{- end }}
+          {{- if .Values.containerSecurityContext }}
+            {{- $containerSC = mustMergeOverwrite $containerSC .Values.containerSecurityContext }}
+          {{- end }}
+          {{- if $containerSC }}
+          securityContext:
+            {{- toYaml $containerSC | nindent 12 }}
+          {{- end }}
           ports:
             - name: http
               containerPort: {{ .Values.image.containerPort }}

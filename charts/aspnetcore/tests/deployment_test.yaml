@@ -153,15 +153,141 @@ tests:
           path: spec.template.spec.securityContext.sysctls[0].value
           value: "65535"
 
-  - it: should not apply securityContext when disabled
+  - it: should not apply securityContext when both sysctls and restrictedSecurityContext preset are disabled
     set:
       securityContext:
         enabled: false
+      presets:
+        restrictedSecurityContext:
+          enabled: false
     asserts:
       - hasDocuments:
           count: 1
       - isNull:
           path: spec.template.spec.securityContext
+
+  - it: should apply restricted pod securityContext by default
+    asserts:
+      - hasDocuments:
+          count: 1
+      - equal:
+          path: spec.template.spec.securityContext.runAsNonRoot
+          value: true
+
+  - it: should apply restricted container securityContext by default
+    asserts:
+      - hasDocuments:
+          count: 1
+      - equal:
+          path: spec.template.spec.containers[0].securityContext.allowPrivilegeEscalation
+          value: false
+      - equal:
+          path: spec.template.spec.containers[0].securityContext.capabilities.drop
+          value: ["ALL"]
+
+  - it: should not apply container securityContext when restrictedSecurityContext preset is disabled and no containerSecurityContext is set
+    set:
+      presets:
+        restrictedSecurityContext:
+          enabled: false
+    asserts:
+      - hasDocuments:
+          count: 1
+      - isNull:
+          path: spec.template.spec.containers[0].securityContext
+
+  - it: should let podSecurityContext override preset fields
+    set:
+      podSecurityContext:
+        runAsNonRoot: false
+        fsGroup: 2000
+    asserts:
+      - hasDocuments:
+          count: 1
+      - equal:
+          path: spec.template.spec.securityContext.runAsNonRoot
+          value: false
+      - equal:
+          path: spec.template.spec.securityContext.fsGroup
+          value: 2000
+
+  - it: should preserve preset capabilities.drop when containerSecurityContext adds capabilities
+    # Load-bearing assertion: verifies that mustMergeOverwrite recursively
+    # merges nested `capabilities` rather than replacing the whole map. If
+    # the merge ever regresses to a shallow replace, drop:[ALL] silently
+    # disappears whenever a consumer sets capabilities.add — a real security
+    # regression that wouldn't be caught by add-only assertions.
+    set:
+      containerSecurityContext:
+        readOnlyRootFilesystem: true
+        capabilities:
+          add: ["NET_BIND_SERVICE"]
+    asserts:
+      - hasDocuments:
+          count: 1
+      - equal:
+          path: spec.template.spec.containers[0].securityContext.capabilities.drop
+          value: ["ALL"]
+      - equal:
+          path: spec.template.spec.containers[0].securityContext.capabilities.add
+          value: ["NET_BIND_SERVICE"]
+      - equal:
+          path: spec.template.spec.containers[0].securityContext.readOnlyRootFilesystem
+          value: true
+      - equal:
+          path: spec.template.spec.containers[0].securityContext.allowPrivilegeEscalation
+          value: false
+
+  - it: should render podSecurityContext on its own when preset is disabled
+    set:
+      presets:
+        restrictedSecurityContext:
+          enabled: false
+      podSecurityContext:
+        fsGroup: 2000
+    asserts:
+      - hasDocuments:
+          count: 1
+      - equal:
+          path: spec.template.spec.securityContext.fsGroup
+          value: 2000
+      - isNull:
+          path: spec.template.spec.securityContext.runAsNonRoot
+
+  - it: should render containerSecurityContext on its own when preset is disabled
+    set:
+      presets:
+        restrictedSecurityContext:
+          enabled: false
+      containerSecurityContext:
+        readOnlyRootFilesystem: true
+    asserts:
+      - hasDocuments:
+          count: 1
+      - equal:
+          path: spec.template.spec.containers[0].securityContext.readOnlyRootFilesystem
+          value: true
+      - isNull:
+          path: spec.template.spec.containers[0].securityContext.allowPrivilegeEscalation
+      - isNull:
+          path: spec.template.spec.containers[0].securityContext.capabilities
+
+  - it: should merge sysctls and restrictedSecurityContext preset on the pod
+    set:
+      securityContext:
+        enabled: true
+        sysctls:
+          - name: "net.core.somaxconn"
+            value: "65535"
+    asserts:
+      - hasDocuments:
+          count: 1
+      - equal:
+          path: spec.template.spec.securityContext.runAsNonRoot
+          value: true
+      - equal:
+          path: spec.template.spec.securityContext.sysctls[0].name
+          value: "net.core.somaxconn"
 
   - it: should use custom topologySpreadConstraints when provided
     set:
