@@ -1,0 +1,87 @@
+name: Backfill release notes
+
+# One-off retroactive populator for historical releases. chart-releaser's
+# --generate-release-notes only fires for newly-created releases, so the
+# bodies of releases created before FENG-2352 stay bare ("A generic Helm
+# chart for ASP.NET Core services") unless we patch them.
+#
+# Run this manually from the Actions tab. It iterates over every existing
+# release, finds the previous release of the same chart, asks GitHub's
+# release-notes API for the diff, and patches the body via `gh release edit`.
+# Idempotent — re-running on an already-backfilled release just overwrites
+# the body with a freshly generated version.
+#
+# After running it once and reviewing the results, this file can be deleted
+# (or kept around for the next time someone manually creates a release).
+
+on:
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "If true, print what would be patched but do not call `gh release edit`."
+        required: false
+        default: "false"
+
+permissions:
+  contents: write
+
+jobs:
+  backfill:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+
+      - name: Backfill every release's notes
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DRY_RUN: ${{ inputs.dry_run }}
+        run: |
+          set -euo pipefail
+
+          # Pre-fetch all releases once; the loop only does in-memory jq
+          # lookups + one generate-notes API call + one edit per release.
+          gh release list --limit 200 --json tagName,createdAt > releases.json
+          total=$(jq 'length' releases.json)
+          echo "Found $total releases."
+
+          # Iterate oldest-first so log output reads in chronological order.
+          jq -r 'sort_by(.createdAt) | .[] | "\(.tagName)\t\(.createdAt)"' releases.json | \
+          while IFS=$'\t' read -r tag created; do
+            # Tag shape is "<chart>-<semver>" (e.g. aspnetcore-5.1.0). Strip
+            # the trailing "-<semver>" to recover the chart name.
+            chart="${tag%-*}"
+
+            # Previous release = most recent release of the SAME chart with
+            # a createdAt strictly earlier than this one's.
+            prev=$(jq -r --arg chart "$chart" --arg created "$created" '
+              [ .[]
+                | select(.tagName | startswith($chart + "-"))
+                | select(.createdAt < $created)
+              ]
+              | sort_by(.createdAt)
+              | last.tagName // empty' releases.json)
+
+            if [ -z "$prev" ]; then
+              echo "SKIP $tag — no prior release of $chart to diff against."
+              continue
+            fi
+
+            notes=$(gh api "repos/${GITHUB_REPOSITORY}/releases/generate-notes" \
+              -f tag_name="$tag" \
+              -f previous_tag_name="$prev" \
+              --jq .body)
+
+            if [ -z "$notes" ]; then
+              echo "SKIP $tag — generate-notes returned empty body (vs $prev)."
+              continue
+            fi
+
+            if [ "$DRY_RUN" = "true" ]; then
+              echo "DRY $tag (vs $prev): would patch with $(echo "$notes" | wc -l) lines of notes."
+            else
+              gh release edit "$tag" --notes "$notes"
+              echo "DONE $tag (vs $prev)."
+            fi
+          done
+
+          rm -f releases.json

@@ -48,3 +48,8 @@ jobs:
           CR_PAGES_BRANCH: "gh-pages"
           CR_PAGES_INDEX_PATH: "pages/index.yaml"
           CR_SKIP_EXISTING: "true"
+          # Ask GitHub to auto-generate release notes from merged PRs in the
+          # tag range. chart-releaser binds this to the cr CLI's
+          # --generate-release-notes flag via viper (env prefix CR_, '-' -> '_').
+          # Categorization is driven by .github/release.yml.
+          CR_GENERATE_RELEASE_NOTES: "true"
