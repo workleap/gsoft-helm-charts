@@ -1,0 +1,25 @@
+# Configuration for GitHub's auto-generated release notes.
+# See https://docs.github.com/en/repositories/releasing-projects-on-github/automatically-generated-release-notes
+#
+# Categorization is label-driven: each PR's labels decide which section it
+# lands in. Without label discipline, the wildcard "Other" catch-all keeps
+# every PR visible — strictly better than the previous empty release body.
+# A follow-up could map Conventional Commits prefixes (feat:, fix:, feat!:)
+# to labels via a label-sync workflow; out of scope here.
+changelog:
+  categories:
+    - title: Breaking changes
+      labels:
+        - breaking
+        - kind/breaking
+    - title: Features
+      labels:
+        - kind/feature
+        - enhancement
+    - title: Fixes
+      labels:
+        - kind/bug
+        - bug
+    - title: Other
+      labels:
+        - "*"
