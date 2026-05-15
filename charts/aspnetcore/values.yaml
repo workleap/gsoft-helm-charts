@@ -240,6 +240,19 @@ securityContext:
   - name: net.ipv4.tcp_keepalive_probes
     value: "8"
 
+## Extra fields merged into the pod-level securityContext, on top of any defaults
+## set by `presets.restrictedSecurityContext` and the sysctls block above.
+## User-provided keys overwrite preset keys. Useful for adding e.g. `fsGroup`.
+## @param podSecurityContext Extra fields merged into the pod's spec.securityContext
+podSecurityContext: {}
+
+## Extra fields merged into the container-level securityContext, on top of any
+## defaults set by `presets.restrictedSecurityContext`. User-provided keys
+## overwrite preset keys. Useful for adding e.g. `readOnlyRootFilesystem: true`
+## or whitelisting a single capability via `capabilities.add: ["NET_BIND_SERVICE"]`.
+## @param containerSecurityContext Extra fields merged into the container's securityContext
+containerSecurityContext: {}
+
 ## Configure settings related to HELM chart migration.
 ## @param migration.existingSelectors.enabled Whether or not to use existing selectors for the deployment
 ## @param migration.existingSelectors.selectors A map of existing selectors to use for the deployment
@@ -253,4 +266,31 @@ presets:
   ## Configure a `topologySpreadConstraints` for the deployment spreading pods across nodes in a best effort way
   ## Setting the chart Values.topologySpreadConstraints will override this preset
   spreadAcrossNodes:
+    enabled: true
+
+  ## Restricted security context preset — ENABLED BY DEFAULT in 5.2.0.
+  ##
+  ## When enabled, the chart applies a Pod Security Standards "Restricted"
+  ## baseline to every pod and container it renders:
+  ##   - Pod  spec.securityContext.runAsNonRoot:                true
+  ##   - Container .securityContext.allowPrivilegeEscalation:   false
+  ##   - Container .securityContext.capabilities.drop:          [ALL]
+  ##
+  ## Rationale (long form: MIGRATION.md, v5.1 → v5.2):
+  ##   1. Secure-by-default — workloads are hardened by using the shared
+  ##      chart, not by every team remembering to add a securityContext block.
+  ##   2. Pod Security Standards Restricted alignment — keeps the chart
+  ##      compatible with cluster-side PSS admission if it is ever enforced.
+  ##   3. Defense in depth on top of the image's USER directive. Drops the
+  ##      default container capability set (CHOWN, DAC_OVERRIDE, NET_RAW,
+  ##      SETUID, etc.) that HTTP workloads never need.
+  ##
+  ## Extend or override individual fields via `podSecurityContext` /
+  ## `containerSecurityContext` above (user keys win over preset keys).
+  ##
+  ## Opt out with `enabled: false` — only with explicit justification, and
+  ## please document the reason inline in your values.yaml.
+  ##
+  ## @param presets.restrictedSecurityContext.enabled Apply the PSS Restricted baseline to pod + container
+  restrictedSecurityContext:
     enabled: true
