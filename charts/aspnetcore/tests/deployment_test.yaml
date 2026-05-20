@@ -99,6 +99,59 @@ tests:
           path: spec.template.metadata.labels.component
           value: "api"
 
+  - it: should apply release name to pod otel.resource.service.name annotations when service.name not set
+    release:
+      name: foobar
+    asserts:
+      - hasDocuments:
+          count: 1
+      - equal:
+          path: spec.template.metadata.annotations["otel.resource.service.name"]
+          value: foobar
+
+  - it: should apply .service.name to pod otel.resource.service.name annotations
+    release:
+      name: foobar
+    set:
+      service.name: "my-aspnetcore-service"
+    asserts:
+      - hasDocuments:
+          count: 1
+      - equal:
+          path: spec.template.metadata.annotations["otel.resource.service.name"]
+          value: "my-aspnetcore-service"
+
+  - it: should apply .podAnnotations on top of "otel.resource.service.name"
+    release:
+      name: foobar
+    set:
+      service.name: "my-aspnetcore-service"
+      podAnnotations:
+        another-annotation: "another-value"
+    asserts:
+      - hasDocuments:
+          count: 1
+      - equal:
+          path: spec.template.metadata.annotations["otel.resource.service.name"]
+          value: "my-aspnetcore-service"
+      - equal:
+          path: spec.template.metadata.annotations["another-annotation"]
+          value: "another-value"
+
+  - it: should prioritize .podAnnotations otel.resource.service.name over all else
+    release:
+      name: foobar
+    set:
+      service.name: "my-aspnetcore-service"
+      podAnnotations:
+        otel.resource.service.name: "custom-service-name"
+    asserts:
+      - hasDocuments:
+          count: 1
+      - equal:
+          path: spec.template.metadata.annotations["otel.resource.service.name"]
+          value: "custom-service-name"
+
   - it: should set automountServiceAccountToken to true when aadPodIdentityBinding is enabled
     set:
       aadPodIdentityBinding:
