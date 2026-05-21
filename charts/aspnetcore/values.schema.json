@@ -455,6 +455,14 @@
       },
       "additionalProperties": false
     },
+    "podSecurityContext": {
+      "type": "object",
+      "description": "Extra fields merged into the pod's spec.securityContext, on top of presets.restrictedSecurityContext"
+    },
+    "containerSecurityContext": {
+      "type": "object",
+      "description": "Extra fields merged into the container's securityContext, on top of presets.restrictedSecurityContext"
+    },
     "migration": {
       "type": "object",
       "properties": {
@@ -489,6 +497,17 @@
               "type": "boolean",
               "default": true,
               "description": "Configure topologySpreadConstraints for spreading pods across nodes"
+            }
+          },
+          "additionalProperties": false
+        },
+        "restrictedSecurityContext": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "default": true,
+              "description": "Apply Pod Security Standards Restricted baseline (runAsNonRoot, allowPrivilegeEscalation: false, drop ALL caps) to pod and container"
             }
           },
           "additionalProperties": false
