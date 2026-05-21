@@ -1,0 +1,86 @@
+name: Release notes dry-run
+
+# Manual smoke test for the Claude release-notes integration.
+#
+# Runs `claude-release-notes` against an existing tag with `apply: false` —
+# no release body is touched. Exercises the full Cloudflare AI Gateway +
+# Key Vault + Claude path end-to-end, so a green run confirms the gateway
+# is reachable and the action is wired correctly. Use it to:
+#   - Validate the gateway after rotation / outage / config changes.
+#   - Sanity-check notes quality on a sample release before relying on the
+#     auto-generated bodies in production.
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Existing tag to generate notes for (e.g. 'aspnetcore-5.1.0')."
+        required: true
+        type: string
+      previous-tag:
+        description: "Optional. Tag to diff against. Leave blank to auto-detect via the chart prefix."
+        required: false
+        default: ""
+        type: string
+
+permissions:
+  id-token: write
+  contents: read
+  actions: read
+  pull-requests: read
+
+jobs:
+  dry-run:
+    runs-on: [idp]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+        with:
+          fetch-depth: 0
+
+      - name: Derive tag prefix
+        id: prefix
+        shell: pwsh
+        env:
+          TAG: ${{ inputs.tag }}
+        run: |
+          $i = $env:TAG.LastIndexOf('-')
+          if ($i -lt 0) {
+              Write-Error "Tag '$env:TAG' has no '-' separator; expected '<chart>-<semver>'."
+              exit 1
+          }
+          $prefix = $env:TAG.Substring(0, $i + 1)
+          "prefix=$prefix" >> $env:GITHUB_OUTPUT
+          Write-Host "Derived tag-prefix '$prefix' from tag '$env:TAG'."
+
+      - name: Generate release notes with Claude (dry-run)
+        id: notes
+        uses: workleap/wl-github-actions/.github/actions/claude-release-notes@latest
+        with:
+          variables: ${{ toJSON(vars) }}
+          tag: ${{ inputs.tag }}
+          previous-tag: ${{ inputs.previous-tag }}
+          tag-prefix: ${{ steps.prefix.outputs.prefix }}
+          apply: "false"
+
+      - name: Publish notes to job summary
+        shell: pwsh
+        env:
+          TAG: ${{ inputs.tag }}
+          PREVIOUS_TAG: ${{ steps.notes.outputs.previous-tag }}
+          NOTES: ${{ steps.notes.outputs.notes }}
+        run: |
+          $header = @"
+          # Dry-run release notes
+
+          | Field | Value |
+          | --- | --- |
+          | Tag | ``$env:TAG`` |
+          | Previous tag | ``$env:PREVIOUS_TAG`` |
+          | Applied to release | no (dry-run) |
+
+          ---
+
+          "@
+          $header     >> $env:GITHUB_STEP_SUMMARY
+          $env:NOTES  >> $env:GITHUB_STEP_SUMMARY

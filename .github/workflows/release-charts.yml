@@ -12,6 +12,8 @@ jobs:
       id-token: write
       contents: write
     runs-on: [idp]
+    outputs:
+      new-tags: ${{ steps.find-new-tags.outputs.tags }}
     steps:
       - name: Get Secrets from Azure Key Vault
         id: get_secret
@@ -22,7 +24,7 @@ jobs:
           azure-subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
           keyvault-name: ${{ vars.IDP_CICD_KEYVAULT_NAME }}
           secret-name: "leap-helm-release"
-          
+
       - name: Checkout
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
         with:
@@ -39,6 +41,15 @@ jobs:
         with:
           version: v3.19.0
 
+      - name: Snapshot tags before release
+        id: tags-before
+        shell: pwsh
+        run: |
+          $tags = @(git tag)
+          $json = ConvertTo-Json -Compress -InputObject $tags -AsArray
+          "tags=$json" >> $env:GITHUB_OUTPUT
+          Write-Host "Snapshotted $($tags.Count) existing tags."
+
       - name: Run chart-releaser
         uses: helm/chart-releaser-action@cae68fefc6b5f367a0275617c9f83181ba54714f # v1.7.0
         with:
@@ -51,5 +62,62 @@ jobs:
           # Ask GitHub to auto-generate release notes from merged PRs in the
           # tag range. chart-releaser binds this to the cr CLI's
           # --generate-release-notes flag via viper (env prefix CR_, '-' -> '_').
-          # Categorization is driven by .github/release.yml.
+          # Categorization is driven by .github/release.yml. The release-notes
+          # job below overwrites these bodies with Claude-generated notes —
+          # CR's output stays as a fallback if the Claude job fails.
           CR_GENERATE_RELEASE_NOTES: "true"
+
+      - name: Find new tags
+        id: find-new-tags
+        shell: pwsh
+        env:
+          BEFORE: ${{ steps.tags-before.outputs.tags }}
+        run: |
+          git fetch --tags --quiet
+          $before = ConvertFrom-Json $env:BEFORE
+          $after  = @(git tag)
+          $new    = @($after | Where-Object { $before -notcontains $_ })
+          $json   = ConvertTo-Json -Compress -InputObject $new -AsArray
+          "tags=$json" >> $env:GITHUB_OUTPUT
+          Write-Host "New tags created by chart-releaser: $json"
+
+  release-notes:
+    needs: release
+    if: ${{ needs.release.outputs.new-tags != '' && needs.release.outputs.new-tags != '[]' }}
+    permissions:
+      id-token: write
+      contents: write
+      actions: read
+      pull-requests: read
+    runs-on: [idp]
+    strategy:
+      fail-fast: false
+      matrix:
+        tag: ${{ fromJSON(needs.release.outputs.new-tags) }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+        with:
+          fetch-depth: 0
+
+      - name: Derive tag prefix
+        id: prefix
+        shell: pwsh
+        env:
+          TAG: ${{ matrix.tag }}
+        run: |
+          $i = $env:TAG.LastIndexOf('-')
+          if ($i -lt 0) {
+              Write-Error "Tag '$env:TAG' has no '-' separator; expected '<chart>-<semver>'."
+              exit 1
+          }
+          $prefix = $env:TAG.Substring(0, $i + 1)
+          "prefix=$prefix" >> $env:GITHUB_OUTPUT
+          Write-Host "Derived tag-prefix '$prefix' from tag '$env:TAG'."
+
+      - name: Generate release notes with Claude
+        uses: workleap/wl-github-actions/.github/actions/claude-release-notes@latest
+        with:
+          variables: ${{ toJSON(vars) }}
+          tag: ${{ matrix.tag }}
+          tag-prefix: ${{ steps.prefix.outputs.prefix }}
