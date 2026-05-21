@@ -1,0 +1,14 @@
+name: Jira
+
+on:
+  pull_request:
+    branches: [main]
+    paths-ignore: ["*.md"]
+
+jobs:
+  call-workflow-jira:
+    uses: workleap/wl-github-actions/.github/workflows/jira-check.yml@latest
+    permissions:
+      contents: read
+      pull-requests: write
+      id-token: write
