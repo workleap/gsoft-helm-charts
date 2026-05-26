@@ -17,10 +17,12 @@ jobs:
     steps:
       - name: Get Secrets from Azure Key Vault
         id: get_secret
-        uses: workleap/wl-github-actions/.github/actions/azure-keyvault-get-secret@latest
+        uses: workleap/wl-reusable-workflows/retrieve-managed-secret@main
         with:
-          variables: ${{ toJSON(vars) }}
-          secret-name: "leap-helm-release"
+          azure-client-id: ${{ vars.AZURE_CLIENT_ID }}
+          azure-tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          azure-subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+          keyvault-name: ${{ vars.IDP_CICD_KEYVAULT_NAME }}
 
       - name: Checkout
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
