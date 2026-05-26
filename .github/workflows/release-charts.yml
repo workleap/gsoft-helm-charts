@@ -17,10 +17,12 @@ jobs:
     steps:
       - name: Get Secrets from Azure Key Vault
         id: get_secret
-        uses: workleap/wl-github-actions/.github/actions/azure-keyvault-get-secret@latest
+        uses: workleap/wl-reusable-workflows/retrieve-managed-secret@main
         with:
-          variables: ${{ toJSON(vars) }}
-          secret-name: "leap-helm-release"
+          azure-client-id: ${{ vars.AZURE_CLIENT_ID }}
+          azure-tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          azure-subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+          keyvault-name: ${{ vars.IDP_CICD_KEYVAULT_NAME }}
 
       - name: Checkout
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
@@ -62,7 +64,7 @@ jobs:
           # Categorization is driven by .github/release.yml. The release-notes
           # job below overwrites these bodies with Claude-generated notes —
           # CR's output stays as a fallback if the Claude job fails.
-          CR_GENERATE_RELEASE_NOTES: "true"
+          CR_GENERATE_RELEASE_NOTES: "false"
 
       - name: Find new tags
         id: find-new-tags
@@ -77,44 +79,3 @@ jobs:
           $json   = ConvertTo-Json -Compress -InputObject $new -AsArray
           "tags=$json" >> $env:GITHUB_OUTPUT
           Write-Host "New tags created by chart-releaser: $json"
-
-  release-notes:
-    needs: release
-    if: ${{ needs.release.outputs.new-tags != '' && needs.release.outputs.new-tags != '[]' }}
-    permissions:
-      id-token: write
-      contents: write
-      actions: read
-      pull-requests: read
-    runs-on: [idp]
-    strategy:
-      fail-fast: false
-      matrix:
-        tag: ${{ fromJSON(needs.release.outputs.new-tags) }}
-    steps:
-      - name: Checkout
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
-        with:
-          fetch-depth: 0
-
-      - name: Derive tag prefix
-        id: prefix
-        shell: pwsh
-        env:
-          TAG: ${{ matrix.tag }}
-        run: |
-          $i = $env:TAG.LastIndexOf('-')
-          if ($i -lt 0) {
-              Write-Error "Tag '$env:TAG' has no '-' separator; expected '<chart>-<semver>'."
-              exit 1
-          }
-          $prefix = $env:TAG.Substring(0, $i + 1)
-          "prefix=$prefix" >> $env:GITHUB_OUTPUT
-          Write-Host "Derived tag-prefix '$prefix' from tag '$env:TAG'."
-
-      - name: Generate release notes with Claude
-        uses: workleap/wl-github-actions/.github/actions/claude-release-notes@latest
-        with:
-          variables: ${{ toJSON(vars) }}
-          tag: ${{ matrix.tag }}
-          tag-prefix: ${{ steps.prefix.outputs.prefix }}
