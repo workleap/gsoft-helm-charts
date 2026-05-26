@@ -64,7 +64,7 @@ jobs:
           # Categorization is driven by .github/release.yml. The release-notes
           # job below overwrites these bodies with Claude-generated notes —
           # CR's output stays as a fallback if the Claude job fails.
-          CR_GENERATE_RELEASE_NOTES: "true"
+          CR_GENERATE_RELEASE_NOTES: "false"
 
       - name: Find new tags
         id: find-new-tags
