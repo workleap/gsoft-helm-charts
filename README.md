@@ -36,6 +36,12 @@ The chart applies a few opinionated defaults so callers don't have to reason abo
 - **Conditional .NET env injection.** When `aspnetcore.injectEnvVars` is `true` (default), the chart injects `DOTNET_ENVIRONMENT` (from `environment`) and `ASPNETCORE_URLS` (computed from `image.containerPort`) into the container. Set it to `false` for non-.NET workloads — the env block is omitted entirely if no `extraEnvVars` are provided either.
 
 
+### Testing
+
+This repository uses the [helm unittest plugin](https://github.com/helm-unittest/helm-unittest) to perform unit tests on the Helm charts. The test files are located in the `tests/` directory within each chart.
+
+You can find documentation on the declarative helm unittest syntax [here](https://github.com/helm-unittest/helm-unittest/blob/main/DOCUMENT.md).
+
 ### Installing the chart
 
 The recommended way is to add this chart [as a dependency of your chart](https://helm.sh/docs/helm/helm_dependency/):
