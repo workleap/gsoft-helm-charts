@@ -298,3 +298,23 @@ tests:
       - equal:
           path: spec.template.spec.containers[0].startupProbe.failureThreshold
           value: 10
+
+  - it: should not set replicas when autoscaling is enabled
+    set:
+      autoscaling:
+        enabled: true
+        minReplicas: 2
+        maxReplicas: 3
+    asserts:
+      - notExists:
+          path: spec.replicas
+
+  - it: should set replicas from replicaCount when autoscaling is disabled
+    set:
+      autoscaling:
+        enabled: false
+      replicaCount: 3
+    asserts:
+      - equal:
+          path: spec.replicas
+          value: 3
