@@ -9,26 +9,16 @@ on:
 jobs:
   release:
     permissions:
-      id-token: write
       contents: write
     runs-on: [idp]
     outputs:
       new-tags: ${{ steps.find-new-tags.outputs.tags }}
     steps:
-      - name: Get Secrets from Azure Key Vault
-        id: get_secret
-        uses: workleap/wl-reusable-workflows/retrieve-managed-secret@main
-        with:
-          azure-client-id: ${{ vars.AZURE_CLIENT_ID }}
-          azure-tenant-id: ${{ vars.AZURE_TENANT_ID }}
-          azure-subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
-          keyvault-name: ${{ vars.IDP_CICD_KEYVAULT_NAME }}
-
       - name: Checkout
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
         with:
           fetch-depth: 0
-          token: ${{ steps.get_secret.outputs.secret }}
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Configure Git
         run: |
@@ -54,7 +44,7 @@ jobs:
         with:
           charts_dir: charts
         env:
-          CR_TOKEN: "${{ steps.get_secret.outputs.secret }}"
+          CR_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
           CR_PAGES_BRANCH: "gh-pages"
           CR_PAGES_INDEX_PATH: "pages/index.yaml"
           CR_SKIP_EXISTING: "true"
