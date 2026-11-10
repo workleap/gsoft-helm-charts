@@ -14,6 +14,9 @@ on:
       - "charts/aspnetcore/**"
       - ".github/workflows/ci-aspnetcore.yml"
 
+permissions:
+  contents: read
+
 jobs:
   lint:
     name: Lint Helm chart
@@ -22,6 +25,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - name: Setup Helm
         uses: azure/setup-helm@b9e51907a09c216f16ebe8536097933489208112 # v4
@@ -34,7 +39,7 @@ jobs:
 
       - name: Validate HELM chart
         run: |
-          helm plugin install https://github.com/melmorabity/helm-kubeconform --version 0.6.7.1
+          helm plugin install https://github.com/melmorabity/helm-kubeconform --version a0803ed236b75fd2565a61e3eb32391c20172480 # 0.6.7.1
           helm kubeconform ./charts/aspnetcore/ --values ./charts/aspnetcore/values.yaml --strict --skip HTTPRoute --set-json 'httpRoute.parentRefs=[{"name":"default"}]'
 
       - name: Run unit tests
@@ -63,6 +68,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - name: Setup Helm
         uses: azure/setup-helm@b9e51907a09c216f16ebe8536097933489208112 # v4

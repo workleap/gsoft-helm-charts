@@ -27,9 +27,10 @@ INTEGRATION_TEST_CHART_LOCK_FILE := $(INTEGRATION_TEST_CHART)/Chart.lock
 $(INTEGRATION_TEST_CHART_LOCK_FILE):
 	@helm dependency update charts/aspnetcore/tests/integration/chart 1>/dev/null 2>&1 || (echo "❌ ERROR: Failed to update dependencies for integration test chart" && exit 1)
 
+# Pinned to the commit of tag v0.8.2 (tags are mutable). Renovate cannot bump this ref; update it manually.
 $(HELM_UNITTEST_PLUGIN):
 	@echo "Installing helm unittest plugin..."
-	@helm plugin install $(HELM_UNITTEST_PLUGIN_GIT) --version v0.8.2 >/dev/null
+	@helm plugin install $(HELM_UNITTEST_PLUGIN_GIT) --version b94e638e72cf00034654b70944c0d20cb5d0c3cf >/dev/null
 	@echo "✅ helm unittest plugin installed."
 
 tests/helm-unittests: $(HELM_UNITTEST_PLUGIN)
