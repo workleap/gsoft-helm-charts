@@ -5,7 +5,7 @@ name: Release notes dry-run
 # Runs `claude-release-notes` against an existing tag with `apply: false` —
 # no release body is touched. Exercises the full Cloudflare AI Gateway +
 # Key Vault + Claude path end-to-end, so a green run confirms the gateway
-# is reachable and the action is wired correctly. Use it to:
+# is reachable and the workflow is wired correctly. Use it to:
 #   - Validate the gateway after rotation / outage / config changes.
 #   - Sanity-check notes quality on a sample release before relying on the
 #     auto-generated bodies in production.
@@ -30,14 +30,11 @@ permissions:
   pull-requests: read
 
 jobs:
-  dry-run:
-    runs-on: [idp]
+  prefix:
+    runs-on: ubuntu-latest
+    outputs:
+      prefix: ${{ steps.prefix.outputs.prefix }}
     steps:
-      - name: Checkout
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
-        with:
-          fetch-depth: 0
-
       - name: Derive tag prefix
         id: prefix
         shell: pwsh
@@ -53,34 +50,47 @@ jobs:
           "prefix=$prefix" >> $env:GITHUB_OUTPUT
           Write-Host "Derived tag-prefix '$prefix' from tag '$env:TAG'."
 
-      - name: Generate release notes with Claude (dry-run)
-        id: notes
-        uses: workleap/wl-github-actions/.github/actions/claude-release-notes@latest
+  notes:
+    name: Generate release notes with Claude (dry-run)
+    needs: prefix
+    permissions:
+      contents: write
+      pull-requests: read
+      id-token: write
+    uses: workleap/wl-github-actions/.github/workflows/claude-release-notes.yml@latest
+    with:
+      tag: ${{ inputs.tag }}
+      previous-tag: ${{ inputs.previous-tag }}
+      tag-prefix: ${{ needs.prefix.outputs.prefix }}
+      apply: false
+
+  summary:
+    name: Publish notes to job summary
+    needs: notes
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Download notes
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
         with:
-          variables: ${{ toJSON(vars) }}
-          tag: ${{ inputs.tag }}
-          previous-tag: ${{ inputs.previous-tag }}
-          tag-prefix: ${{ steps.prefix.outputs.prefix }}
-          apply: "false"
+          name: ${{ needs.notes.outputs.artifact-name }}
 
       - name: Publish notes to job summary
-        shell: pwsh
         env:
           TAG: ${{ inputs.tag }}
-          PREVIOUS_TAG: ${{ steps.notes.outputs.previous-tag }}
-          NOTES: ${{ steps.notes.outputs.notes }}
+          PREVIOUS_TAG: ${{ needs.notes.outputs.previous-tag }}
         run: |
-          $header = @"
-          # Dry-run release notes
-
-          | Field | Value |
-          | --- | --- |
-          | Tag | ``$env:TAG`` |
-          | Previous tag | ``$env:PREVIOUS_TAG`` |
-          | Applied to release | no (dry-run) |
-
-          ---
-
-          "@
-          $header     >> $env:GITHUB_STEP_SUMMARY
-          $env:NOTES  >> $env:GITHUB_STEP_SUMMARY
+          {
+            echo "# Dry-run release notes"
+            echo
+            echo "| Field | Value |"
+            echo "| --- | --- |"
+            echo '| Tag | `'"$TAG"'` |'
+            echo '| Previous tag | `'"$PREVIOUS_TAG"'` |'
+            echo "| Applied to release | no (dry-run) |"
+            echo
+            echo "---"
+            echo
+            cat release-notes.md
+          } >> "$GITHUB_STEP_SUMMARY"
