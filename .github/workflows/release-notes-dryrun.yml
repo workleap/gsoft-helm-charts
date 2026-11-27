@@ -2,7 +2,7 @@ name: Release notes dry-run
 
 # Manual smoke test for the Claude release-notes integration.
 #
-# Runs `claude-release-notes` against an existing tag with `apply: false` â€”
+# Runs `claude-release-notes` against an existing tag with `apply: false` —
 # no release body is touched. Exercises the full Cloudflare AI Gateway +
 # Key Vault + Claude path end-to-end, so a green run confirms the gateway
 # is reachable and the workflow is wired correctly. Use it to:
@@ -37,16 +37,18 @@ jobs:
     steps:
       - name: Derive tag prefix
         id: prefix
+        shell: pwsh
         env:
           TAG: ${{ inputs.tag }}
         run: |
-          if [[ "$TAG" != *-* ]]; then
-            echo "::error::Tag '$TAG' has no '-' separator; expected '<chart>-<semver>'."
-            exit 1
-          fi
-          prefix="${TAG%-*}-"
-          echo "prefix=$prefix" >> "$GITHUB_OUTPUT"
-          echo "Derived tag-prefix '$prefix' from tag '$TAG'."
+          $i = $env:TAG.LastIndexOf('-')
+          if ($i -lt 0) {
+              Write-Error "Tag '$env:TAG' has no '-' separator; expected '<chart>-<semver>'."
+              exit 1
+          }
+          $prefix = $env:TAG.Substring(0, $i + 1)
+          "prefix=$prefix" >> $env:GITHUB_OUTPUT
+          Write-Host "Derived tag-prefix '$prefix' from tag '$env:TAG'."
 
   notes:
     name: Generate release notes with Claude (dry-run)
@@ -70,7 +72,7 @@ jobs:
       contents: read
     steps:
       - name: Download notes
-        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
         with:
           name: ${{ needs.notes.outputs.artifact-name }}
 
